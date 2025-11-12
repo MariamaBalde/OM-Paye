@@ -18,9 +18,16 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'nom',
+        'prenom',
         'email',
         'password',
+        'role',
+        'telephone',
+        'statut',
+        'langue',
+        'theme_sombre',
+        'scanner_actif',
     ];
 
     /**
@@ -41,5 +48,30 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'theme_sombre' => 'boolean',
+        'scanner_actif' => 'boolean',
     ];
+
+    public function comptes()
+    {
+        return $this->hasMany(Compte::class);
+    }
+
+
+    public function verificationCodes()
+    {
+        return $this->hasMany(VerificationCode::class);
+    }
+
+    // Compte principal (pour compatibilité)
+    public function comptePrincipal()
+    {
+        return $this->hasOne(Compte::class)->where('type', 'principal');
+    }
+
+    // Solde total de tous les comptes actifs
+    public function getSoldeTotalAttribute()
+    {
+        return $this->comptes()->actif()->sum('solde');
+    }
 }
