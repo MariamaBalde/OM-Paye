@@ -29,6 +29,7 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
+            // Routes API (avec versioning interne)
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));

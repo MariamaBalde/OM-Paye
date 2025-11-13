@@ -103,4 +103,63 @@ class Transaction extends Model
     {
         return $query->where('created_at', '>=', now()->subDays($days));
     }
+
+    // Scope pour filtrer par utilisateur (émissions et réceptions)
+    public function scopePourUtilisateur($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->whereHas('emetteur', function ($subQ) use ($userId) {
+                $subQ->where('user_id', $userId);
+            })->orWhereHas('destinataire', function ($subQ) use ($userId) {
+                $subQ->where('user_id', $userId);
+            });
+        });
+    }
+
+    // Scope pour filtrer par montant
+    public function scopeMontantEntre($query, $min, $max)
+    {
+        return $query->whereBetween('montant', [$min, $max]);
+    }
+
+    // Scope pour filtrer par période
+    public function scopePeriode($query, $periode)
+    {
+        switch ($periode) {
+            case 'today':
+                return $query->whereDate('created_at', today());
+            case 'week':
+                return $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+            case 'month':
+                return $query->whereMonth('created_at', now()->month)
+                           ->whereYear('created_at', now()->year);
+            case 'year':
+                return $query->whereYear('created_at', now()->year);
+            default:
+                return $query;
+        }
+    }
+
+    // Scope pour rechercher par référence ou destinataire
+    public function scopeRechercher($query, $terme)
+    {
+        return $query->where(function ($q) use ($terme) {
+            $q->where('reference', 'like', "%{$terme}%")
+              ->orWhere('destinataire_nom', 'like', "%{$terme}%")
+              ->orWhere('destinataire_numero', 'like', "%{$terme}%")
+              ->orWhere('description', 'like', "%{$terme}%");
+        });
+    }
+
+    // Scope pour trier par différents critères
+    public function scopeTrierPar($query, $colonne, $direction = 'desc')
+    {
+        $colonnesAutorisees = ['created_at', 'montant', 'montant_total', 'date_transaction'];
+
+        if (in_array($colonne, $colonnesAutorisees)) {
+            return $query->orderBy($colonne, $direction);
+        }
+
+        return $query->orderBy('created_at', 'desc');
+    }
 }

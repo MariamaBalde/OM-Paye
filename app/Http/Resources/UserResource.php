@@ -18,14 +18,35 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'nom' => $this->nom,
             'prenom' => $this->prenom,
+            'nomComplet' => $this->nom . ' ' . $this->prenom,
             'telephone' => $this->telephone,
-            'solde_fcfa' => $this->solde_fcfa,
-            'qr_code' => $this->qr_code,
+            'email' => $this->email,
+            'statut' => $this->statut,
             'langue' => $this->langue,
-            'theme_sombre' => $this->theme_sombre,
-            'scanner_actif' => $this->scanner_actif,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'themeSombre' => (bool) $this->theme_sombre,
+            'scannerActif' => (bool) $this->scanner_actif,
+            'soldeTotal' => (float) $this->getSoldeTotalAttribute(),
+            'metadata' => [
+                'derniereModification' => $this->updated_at?->toISOString(),
+                'dateCreation' => $this->created_at?->toISOString(),
+                'version' => 1
+            ],
+            'relations' => $this->when($request->has('include'), [
+                'comptes' => $this->whenLoaded('comptes', function () {
+                    return $this->comptes->map(function ($compte) {
+                        return [
+                            'id' => $compte->id,
+                            'numeroCompte' => $compte->numero_compte,
+                            'type' => $compte->type,
+                            'solde' => (float) $compte->solde,
+                            'statut' => $compte->statut
+                        ];
+                    });
+                }),
+                'roles' => $this->whenLoaded('roles', function () {
+                    return $this->roles->pluck('name');
+                })
+            ])
         ];
     }
 }

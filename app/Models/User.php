@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens;
+use App\Traits\HasRolesAndPermissions;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
 
     /**
      * The attributes that are mass assignable.
@@ -72,6 +73,11 @@ class User extends Authenticatable
     // Solde total de tous les comptes actifs
     public function getSoldeTotalAttribute()
     {
-        return $this->comptes()->actif()->sum('solde');
+        // Cache the result for 5 minutes to avoid repeated queries
+        return cache()->remember(
+            "user_{$this->id}_solde_total",
+            300, // 5 minutes
+            fn() => $this->comptes()->actif()->sum('solde')
+        );
     }
 }

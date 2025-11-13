@@ -3,19 +3,52 @@
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 
+/**
+ * Trait global pour la définition du format de réponse API
+ * Standardise toutes les réponses de l'application
+ */
 trait ApiResponseTrait
 {
     /**
-     * Return a successful JSON response.
+     * Return a successful JSON response with pagination
      */
     protected function successResponse($data = null, string $message = 'Opération réussie', int $statusCode = 200): JsonResponse
     {
-        return response()->json([
+        $response = [
             'success' => true,
             'message' => $message,
-            'data' => $data,
-        ], $statusCode);
+        ];
+
+        if ($data instanceof LengthAwarePaginator) {
+            $response['data'] = $data->items();
+            $response['pagination'] = [
+                'currentPage' => $data->currentPage(),
+                'totalPages' => $data->lastPage(),
+                'totalItems' => $data->total(),
+                'itemsPerPage' => $data->perPage(),
+                'hasNext' => $data->hasMorePages(),
+                'hasPrevious' => $data->currentPage() > 1,
+            ];
+            $response['links'] = [
+                'self' => $data->url($data->currentPage()),
+                'first' => $data->url(1),
+                'last' => $data->url($data->lastPage()),
+            ];
+
+            if ($data->hasMorePages()) {
+                $response['links']['next'] = $data->url($data->currentPage() + 1);
+            }
+
+            if ($data->currentPage() > 1) {
+                $response['links']['previous'] = $data->url($data->currentPage() - 1);
+            }
+        } else {
+            $response['data'] = $data;
+        }
+
+        return response()->json($response, $statusCode);
     }
 
     /**
@@ -23,11 +56,16 @@ trait ApiResponseTrait
      */
     protected function errorResponse(string $message = 'Une erreur est survenue', int $statusCode = 400, $errors = null): JsonResponse
     {
-        return response()->json([
+        $response = [
             'success' => false,
             'message' => $message,
-            'errors' => $errors,
-        ], $statusCode);
+        ];
+
+        if ($errors) {
+            $response['errors'] = $errors;
+        }
+
+        return response()->json($response, $statusCode);
     }
 
     /**
@@ -55,22 +93,10 @@ trait ApiResponseTrait
     }
 
     /**
-     * Return a paginated response.
+     * Return a paginated response (legacy method for backward compatibility)
      */
     protected function paginatedResponse($paginator, string $message = 'Données récupérées'): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $paginator->items(),
-            'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-            ],
-        ]);
+        return $this->successResponse($paginator, $message);
     }
 }

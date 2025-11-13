@@ -18,21 +18,42 @@ class TransactionResource extends JsonResource
             'id' => $this->id,
             'reference' => $this->reference,
             'type' => $this->type,
-            'montant' => $this->montant,
-            'frais' => $this->frais,
-            'montant_total' => $this->montant_total,
-            'destinataire_numero' => $this->destinataire_numero,
-            'destinataire_nom' => $this->destinataire_nom,
+            'montant' => (float) $this->montant,
+            'frais' => (float) $this->frais,
+            'montantTotal' => (float) $this->montant_total,
+            'destinataireNumero' => $this->destinataire_numero,
+            'destinataireNom' => $this->destinataire_nom,
             'statut' => $this->statut,
-            'code_verification' => $this->code_verification,
-            'code_verifie' => $this->code_verifie,
             'description' => $this->description,
-            'date_transaction' => $this->date_transaction,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'emetteur' => $this->whenLoaded('emetteur'),
-            'destinataire' => $this->whenLoaded('destinataire'),
-            'marchand' => $this->whenLoaded('marchand'),
+            'dateTransaction' => $this->date_transaction?->toISOString(),
+            'metadata' => [
+                'derniereModification' => $this->updated_at?->toISOString(),
+                'version' => 1,
+                'codeVerifie' => (bool) $this->code_verifie
+            ],
+            'relations' => $this->when($request->has('include'), [
+                'emetteur' => $this->whenLoaded('emetteur', function () {
+                    return $this->emetteur ? [
+                        'id' => $this->emetteur->id,
+                        'numeroCompte' => $this->emetteur->numero_compte,
+                        'titulaire' => $this->emetteur->user ? $this->emetteur->user->nom . ' ' . $this->emetteur->user->prenom : null
+                    ] : null;
+                }),
+                'destinataire' => $this->whenLoaded('destinataire', function () {
+                    return $this->destinataire ? [
+                        'id' => $this->destinataire->id,
+                        'numeroCompte' => $this->destinataire->numero_compte,
+                        'titulaire' => $this->destinataire->user ? $this->destinataire->user->nom . ' ' . $this->destinataire->user->prenom : null
+                    ] : null;
+                }),
+                'marchand' => $this->whenLoaded('marchand', function () {
+                    return $this->marchand ? [
+                        'id' => $this->marchand->id,
+                        'nomCommercial' => $this->marchand->nom_commercial,
+                        'codeMarchand' => $this->marchand->code_marchand
+                    ] : null;
+                })
+            ])
         ];
     }
 }

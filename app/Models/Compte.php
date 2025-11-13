@@ -84,4 +84,30 @@ class Compte extends Model
     {
         return $query->where('type', 'principal');
     }
+
+    // Scope global pour comptes non archivés (actifs)
+    public function scopeNonArchive($query)
+    {
+        return $query->whereNotIn('statut', ['ferme', 'supprime']);
+    }
+
+    // Scope local scopeNumero: permet de récupérer un compte par son numéro
+    public function scopeNumero($query, $numero)
+    {
+        return $query->where('numero_compte', $numero);
+    }
+
+    // Scope local scopeClient: permet de récupérer les comptes d'un client basé sur le téléphone
+    public function scopeClient($query, $telephone)
+    {
+        return $query->whereHas('user', function ($q) use ($telephone) {
+            $q->where('telephone', $telephone);
+        });
+    }
+
+    // Scope pour comptes de type cheque ou epargne
+    public function scopeTypeValide($query)
+    {
+        return $query->whereIn('type', ['cheque', 'epargne']);
+    }
 }
