@@ -32,16 +32,13 @@ class UserResource extends JsonResource
                 'version' => 1
             ],
             'relations' => $this->when($request->has('include'), [
-                'comptes' => $this->whenLoaded('comptes', function () {
-                    return $this->comptes->map(function ($compte) {
-                        return [
-                            'id' => $compte->id,
-                            'numeroCompte' => $compte->numero_compte,
-                            'type' => $compte->type,
-                            'solde' => (float) $compte->solde,
-                            'statut' => $compte->statut
-                        ];
-                    });
+                'compte' => $this->whenLoaded('compte', function () {
+                    return [
+                        'id' => $this->compte->id,
+                        'numeroCompte' => $this->compte->numero_compte,
+                        'solde' => (float) $this->compte->solde,
+                        'statut' => $this->compte->statut
+                    ];
                 }),
                 'roles' => $this->whenLoaded('roles', function () {
                     return $this->roles->pluck('name');

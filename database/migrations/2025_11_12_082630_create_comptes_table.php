@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::create('comptes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade')->unique();
             $table->string('numero_compte')->unique();
-            $table->enum('type', ['principal', 'secondaire'])->default('principal');
             $table->decimal('solde', 15, 2)->default(0);
             $table->string('qr_code')->nullable();
             $table->string('code_secret')->nullable(); // 4 chiffres hashés

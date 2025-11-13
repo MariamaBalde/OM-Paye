@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Compte extends Model
 {
@@ -12,7 +13,6 @@ class Compte extends Model
     protected $fillable = [
         'user_id',
         'numero_compte',
-        'type',
         'solde',
         'qr_code',
         'code_secret',
@@ -30,14 +30,14 @@ class Compte extends Model
     // Générer automatiquement le numéro de compte
     protected static function booted()
     {
+        // Scope global pour filtrer automatiquement les comptes actifs
+        static::addGlobalScope('actif', function (Builder $builder) {
+            $builder->where('statut', 'actif');
+        });
+
         static::creating(function ($compte) {
             if (empty($compte->numero_compte)) {
-                $prefix = match($compte->type) {
-                    'principal' => 'OMPRI',
-                    'secondaire' => 'OMSEC',
-                    default => 'OMCPT'
-                };
-                $compte->numero_compte = $prefix . str_pad($compte->user_id . rand(100, 999), 10, '0', STR_PAD_LEFT);
+                $compte->numero_compte = 'OMCPT' . str_pad($compte->user_id . rand(100, 999), 10, '0', STR_PAD_LEFT);
             }
         });
     }
@@ -79,12 +79,6 @@ class Compte extends Model
         return $query->where('statut', 'actif');
     }
 
-    // Scope pour compte principal
-    public function scopePrincipal($query)
-    {
-        return $query->where('type', 'principal');
-    }
-
     // Scope global pour comptes non archivés (actifs)
     public function scopeNonArchive($query)
     {
@@ -103,11 +97,5 @@ class Compte extends Model
         return $query->whereHas('user', function ($q) use ($telephone) {
             $q->where('telephone', $telephone);
         });
-    }
-
-    // Scope pour comptes de type cheque ou epargne
-    public function scopeTypeValide($query)
-    {
-        return $query->whereIn('type', ['cheque', 'epargne']);
     }
 }

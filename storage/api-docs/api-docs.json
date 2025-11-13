@@ -377,19 +377,6 @@
                         }
                     },
                     {
-                        "name": "type",
-                        "in": "query",
-                        "description": "Account type filter",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "epargne",
-                                "cheque"
-                            ]
-                        }
-                    },
-                    {
                         "name": "statut",
                         "in": "query",
                         "description": "Account status filter",
@@ -423,7 +410,6 @@
                                 "date_ouverture",
                                 "solde",
                                 "numero_compte",
-                                "type",
                                 "statut"
                             ]
                         }
@@ -1470,14 +1456,6 @@
                     "numero_compte": {
                         "type": "string",
                         "example": "OM123456789"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": [
-                            "epargne",
-                            "cheque"
-                        ],
-                        "example": "epargne"
                     },
                     "solde": {
                         "type": "number",

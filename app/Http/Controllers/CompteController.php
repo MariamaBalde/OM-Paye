@@ -21,7 +21,6 @@ use Illuminate\Http\Request;
  *     type="object",
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="numero_compte", type="string", example="OM123456789"),
- *     @OA\Property(property="type", type="string", enum={"epargne", "cheque"}, example="epargne"),
  *     @OA\Property(property="solde", type="number", format="float", example=1500.50),
  *     @OA\Property(property="statut", type="string", enum={"actif", "bloque", "ferme"}, example="actif"),
  *     @OA\Property(property="plafond_journalier", type="number", format="float", example=50000.00),
@@ -57,13 +56,6 @@ class CompteController extends Controller
      *         @OA\Schema(type="integer", default=10, maximum=100)
      *     ),
      *     @OA\Parameter(
-     *         name="type",
-     *         in="query",
-     *         description="Account type filter",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"epargne", "cheque"})
-     *     ),
-     *     @OA\Parameter(
      *         name="statut",
      *         in="query",
      *         description="Account status filter",
@@ -82,7 +74,7 @@ class CompteController extends Controller
      *         in="query",
      *         description="Sort field",
      *         required=false,
-     *         @OA\Schema(type="string", enum={"date_ouverture", "solde", "numero_compte", "type", "statut"})
+     *         @OA\Schema(type="string", enum={"date_ouverture", "solde", "numero_compte", "statut"})
      *     ),
      *     @OA\Parameter(
      *         name="order",
@@ -110,18 +102,15 @@ class CompteController extends Controller
         $query = Compte::with(['user', 'client']);
 
         // Appliquer les filtres selon le rôle
-        if ($user->hasRole('client')) {
-            // Client ne voit que ses comptes
-            $query->where('user_id', $user->id);
-        } elseif ($user->hasRole('admin')) {
+        if ($user->hasRole('admin')) {
             // Admin peut voir tous les comptes
             // Pas de filtre supplémentaire
         } else {
-            throw new UnauthorizedException('Rôle non autorisé pour consulter les comptes');
+            throw new UnauthorizedException('Seuls les administrateurs peuvent lister les comptes');
         }
 
         // Appliquer les scopes globaux
-        $query->nonArchive()->typeValide();
+        $query->nonArchive();
 
         // Appliquer les filtres de requête
         $this->applyFilters($query, $request);
@@ -168,18 +157,18 @@ class CompteController extends Controller
      */
     public function balance(): JsonResponse
     {
-        $comptePrincipal = auth()->user()->comptePrincipal;
+        $compte = auth()->user()->compte;
 
-        if (!$comptePrincipal) {
+        if (!$compte) {
             throw new CompteNotFoundException();
         }
 
         return $this->successResponse([
-            'solde' => (float) $comptePrincipal->solde,
-            'solde_formate' => $this->compteService->getFormattedBalance($comptePrincipal),
-            'numero_compte' => $comptePrincipal->numero_compte,
-            'plafond_journalier' => (float) $comptePrincipal->plafond_journalier,
-            'statut' => $comptePrincipal->statut,
+            'solde' => (float) $compte->solde,
+            'solde_formate' => $this->compteService->getFormattedBalance($compte),
+            'numero_compte' => $compte->numero_compte,
+            'plafond_journalier' => (float) $compte->plafond_journalier,
+            'statut' => $compte->statut,
             'devise' => 'FCFA'
         ], 'Solde récupéré avec succès');
     }
@@ -252,15 +241,15 @@ class CompteController extends Controller
      */
     public function qrCode(): JsonResponse
     {
-        $comptePrincipal = auth()->user()->comptePrincipal;
+        $compte = auth()->user()->compte;
 
-        if (!$comptePrincipal) {
+        if (!$compte) {
             throw new CompteNotFoundException();
         }
 
         return $this->successResponse([
-            'qr_code' => $this->compteService->generateQrCode($comptePrincipal),
-            'numero_compte' => $comptePrincipal->numero_compte,
+            'qr_code' => $this->compteService->generateQrCode($compte),
+            'numero_compte' => $compte->numero_compte,
         ], 'QR Code généré avec succès');
     }
 
@@ -269,11 +258,6 @@ class CompteController extends Controller
      */
     private function applyFilters($query, Request $request)
     {
-        // Filtre par type
-        if ($request->has('type') && in_array($request->type, ['epargne', 'cheque'])) {
-            $query->where('type', $request->type);
-        }
-
         // Filtre par statut
         if ($request->has('statut') && in_array($request->statut, ['actif', 'bloque', 'ferme'])) {
             $query->where('statut', $request->statut);
@@ -302,7 +286,7 @@ class CompteController extends Controller
         $order = strtolower($request->get('order', 'desc'));
 
         // Valider les colonnes de tri autorisées
-        $allowedSorts = ['date_ouverture', 'solde', 'numero_compte', 'type', 'statut'];
+        $allowedSorts = ['date_ouverture', 'solde', 'numero_compte', 'statut'];
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'date_ouverture';
         }

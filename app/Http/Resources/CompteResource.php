@@ -19,7 +19,6 @@ class CompteResource extends JsonResource
             'id' => $this->id,
             'numeroCompte' => $this->numero_compte,
             'titulaire' => $this->user ? $this->user->nom . ' ' . $this->user->prenom : null,
-            'type' => $this->type,
             'solde' => (float) $this->solde,
             'devise' => 'FCFA',
             'dateCreation' => $this->date_ouverture?->toISOString(),

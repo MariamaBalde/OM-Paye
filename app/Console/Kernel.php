@@ -16,6 +16,15 @@ class Kernel extends ConsoleKernel
     }
 
     /**
+     * The Artisan commands provided by your application.
+     *
+     * @var array
+     */
+    protected $commands = [
+        Commands\CleanupExpiredVerificationCodes::class,
+    ];
+
+    /**
      * Register the commands for the application.
      */
     protected function commands(): void

@@ -12,8 +12,8 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
-        // Récupérer les comptes principaux
-        $comptes = \App\Models\Compte::where('type', 'principal')->get();
+        // Récupérer tous les comptes (maintenant un seul par utilisateur)
+        $comptes = \App\Models\Compte::all();
 
         foreach ($comptes as $compte) {
             \App\Models\Client::create([

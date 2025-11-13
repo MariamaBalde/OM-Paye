@@ -9,6 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 use App\Traits\HasRolesAndPermissions;
 
+/**
+ * @method \Laravel\Passport\PersonalAccessTokenResult createToken(string $name, array $scopes = [])
+ * @method \Laravel\Passport\Token|null token()
+ */
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRolesAndPermissions;
@@ -53,31 +58,29 @@ class User extends Authenticatable
         'scanner_actif' => 'boolean',
     ];
 
-    public function comptes()
+    public function compte()
     {
-        return $this->hasMany(Compte::class);
+        return $this->hasOne(Compte::class);
     }
 
+    public function comptePrincipal()
+    {
+        return $this->compte();
+    }
 
     public function verificationCodes()
     {
         return $this->hasMany(VerificationCode::class);
     }
 
-    // Compte principal (pour compatibilité)
-    public function comptePrincipal()
-    {
-        return $this->hasOne(Compte::class)->where('type', 'principal');
-    }
-
-    // Solde total de tous les comptes actifs
+    // Solde total du compte unique
     public function getSoldeTotalAttribute()
     {
         // Cache the result for 5 minutes to avoid repeated queries
         return cache()->remember(
             "user_{$this->id}_solde_total",
             300, // 5 minutes
-            fn() => $this->comptes()->actif()->sum('solde')
+            fn() => $this->compte?->solde ?? 0
         );
     }
 }

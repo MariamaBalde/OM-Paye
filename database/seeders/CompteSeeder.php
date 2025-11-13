@@ -16,11 +16,10 @@ class CompteSeeder extends Seeder
         $users = \App\Models\User::all();
 
         foreach ($users as $user) {
-            // Compte principal pour chaque utilisateur
+            // Compte unique pour chaque utilisateur
             \App\Models\Compte::create([
                 'user_id' => $user->id,
-                'numero_compte' => 'OMPRI' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
-                'type' => 'principal',
+                'numero_compte' => 'OMCPT' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
                 'solde' => $this->getInitialSolde($user->telephone),
                 'qr_code' => 'QR_' . $user->telephone,
                 'code_secret' => bcrypt('1234'), // Code secret par défaut
@@ -28,21 +27,6 @@ class CompteSeeder extends Seeder
                 'statut' => 'actif',
                 'date_ouverture' => now()->subDays(rand(1, 365)),
             ]);
-
-            // Certains utilisateurs ont aussi un compte secondaire
-            if (rand(0, 1)) {
-                \App\Models\Compte::create([
-                    'user_id' => $user->id,
-                    'numero_compte' => 'OMSEC' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
-                    'type' => 'secondaire',
-                    'solde' => rand(50000, 500000),
-                    'qr_code' => 'QR_' . $user->telephone . '_SEC',
-                    'code_secret' => bcrypt('5678'),
-                    'plafond_journalier' => 250000.00,
-                    'statut' => 'actif',
-                    'date_ouverture' => now()->subDays(rand(30, 180)),
-                ]);
-            }
         }
     }
 

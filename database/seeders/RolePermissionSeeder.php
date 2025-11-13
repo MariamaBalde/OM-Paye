@@ -15,20 +15,23 @@ class RolePermissionSeeder extends Seeder
     public function run(): void
     {
         // Créer les rôles
-        $clientRole = Role::create([
-            'name' => 'client',
+        $clientRole = Role::firstOrCreate([
+            'name' => 'client'
+        ], [
             'label' => 'Client',
             'description' => 'Utilisateur standard Orange Money'
         ]);
 
-        $adminRole = Role::create([
-            'name' => 'admin',
+        $adminRole = Role::firstOrCreate([
+            'name' => 'admin'
+        ], [
             'label' => 'Administrateur',
             'description' => 'Administrateur système'
         ]);
 
-        $marchandRole = Role::create([
-            'name' => 'marchand',
+        $marchandRole = Role::firstOrCreate([
+            'name' => 'marchand'
+        ], [
             'label' => 'Marchand',
             'description' => 'Compte professionnel marchand'
         ]);
@@ -58,7 +61,9 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permissionData) {
-            Permission::create($permissionData);
+            Permission::firstOrCreate([
+                'name' => $permissionData['name']
+            ], $permissionData);
         }
 
         // Assigner les permissions aux rôles
@@ -76,7 +81,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($clientPermissions as $permName) {
             $permission = Permission::where('name', $permName)->first();
             if ($permission) {
-                $clientRole->permissions()->attach($permission);
+                $clientRole->permissions()->syncWithoutDetaching($permission);
             }
         }
 
@@ -92,7 +97,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($adminPermissions as $permName) {
             $permission = Permission::where('name', $permName)->first();
             if ($permission) {
-                $adminRole->permissions()->attach($permission);
+                $adminRole->permissions()->syncWithoutDetaching($permission);
             }
         }
 
@@ -107,7 +112,7 @@ class RolePermissionSeeder extends Seeder
         foreach ($marchandPermissions as $permName) {
             $permission = Permission::where('name', $permName)->first();
             if ($permission) {
-                $marchandRole->permissions()->attach($permission);
+                $marchandRole->permissions()->syncWithoutDetaching($permission);
             }
         }
     }

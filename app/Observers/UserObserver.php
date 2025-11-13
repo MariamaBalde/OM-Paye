@@ -10,11 +10,10 @@ class UserObserver
 {
     public function created(User $user): void
     {
-        // Créer le compte principal automatiquement
-        $comptePrincipal = Compte::create([
+        // Créer le compte automatiquement
+        $compte = Compte::create([
             'user_id' => $user->id,
-            'numero_compte' => 'OMPRI' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
-            'type' => 'principal',
+            'numero_compte' => 'OMCPT' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
             'solde' => 0.00,
             'qr_code' => 'QR_' . $user->telephone,
             'code_secret' => bcrypt('1234'),
@@ -25,7 +24,7 @@ class UserObserver
 
         // Créer le profil client automatiquement
         Client::create([
-            'compte_id' => $comptePrincipal->id,
+            'compte_id' => $compte->id,
             'type_client' => 'particulier',
             // SUPPRIMER numero_client (n'existe pas dans la migration)
             'contacts_favoris' => json_encode([]),
@@ -45,8 +44,8 @@ class UserObserver
 
     public function deleted(User $user): void
     {
-        // Désactiver les comptes au lieu de supprimer
-        $user->comptes()->update(['statut' => 'ferme']);
+        // Désactiver le compte au lieu de supprimer
+        $user->compte()->update(['statut' => 'ferme']);
     }
 }
 
