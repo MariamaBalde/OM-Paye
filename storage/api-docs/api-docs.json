@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Orange Money API",
-        "description": "API for Orange Money payment system with US 2.0 compliance",
+        "description": "API for Orange Money payment system",
         "version": "1.0.0"
     },
     "servers": [
@@ -12,31 +12,27 @@
         }
     ],
     "paths": {
-        "/auth/login": {
+        "/api/auth/login": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "User login",
-                "description": "Authenticate user with phone number and secret code",
-                "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
+                "summary": "Étape 1: Initiation de connexion OM Pay",
+                "description": "Saisir numéro de téléphone → SMS envoyé automatiquement → Retourne session_id pour tracker la session",
+                "operationId": "8dcb70df1020986038d098cc08d05dae",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "telephone",
-                                    "code_secret"
+                                    "telephone"
                                 ],
                                 "properties": {
                                     "telephone": {
+                                        "description": "Numéro de téléphone sans indicatif (+221)",
                                         "type": "string",
-                                        "example": "771234567"
-                                    },
-                                    "code_secret": {
-                                        "type": "string",
-                                        "example": "1234"
+                                        "example": "782917770"
                                     }
                                 },
                                 "type": "object"
@@ -46,7 +42,114 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Login successful",
+                        "description": "SMS envoyé avec succès - Prêt pour saisir le code secret",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "SMS envoyé"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/SmsSession"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Numéro de téléphone invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Le numéro de téléphone doit contenir exactement 9 chiffres."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Ce numéro de téléphone n'est pas enregistré dans Orange Money."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/verify-code-secret": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Étape 3: Vérification du code secret - Connexion finale",
+                "description": "Après vérification SMS côté backend → Saisir code secret (4 chiffres) → Connexion complète",
+                "operationId": "c612a00b0711b6e511f1fb55574aa095",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "telephone",
+                                    "code_secret",
+                                    "session_id"
+                                ],
+                                "properties": {
+                                    "telephone": {
+                                        "description": "Numéro de téléphone utilisé à l'étape 1",
+                                        "type": "string",
+                                        "example": "782917770"
+                                    },
+                                    "code_secret": {
+                                        "description": "Code secret Orange Money (4 chiffres)",
+                                        "type": "string",
+                                        "example": "1234"
+                                    },
+                                    "session_id": {
+                                        "description": "Session ID retourné à l'étape 1",
+                                        "type": "string",
+                                        "example": "123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie - Accès au dashboard OM Pay",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -60,19 +163,27 @@
                                             "example": "Connexion réussie"
                                         },
                                         "data": {
-                                            "properties": {
-                                                "user": {
-                                                    "$ref": "#/components/schemas/User"
-                                                },
-                                                "token": {
-                                                    "type": "string"
-                                                },
-                                                "token_type": {
-                                                    "type": "string",
-                                                    "example": "Bearer"
-                                                }
-                                            },
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/AuthToken"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Session expirée ou invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Session expirée ou invalide"
                                         }
                                     },
                                     "type": "object"
@@ -81,10 +192,44 @@
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials"
+                        "description": "Code secret incorrect",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Numéro de téléphone ou code secret incorrect"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "403": {
-                        "description": "Account inactive"
+                        "description": "Compte inactif",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Votre compte est suspendu"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -222,138 +367,6 @@
                         "passport": []
                     }
                 ]
-            }
-        },
-        "/oauth/token": {
-            "post": {
-                "tags": [
-                    "OAuth"
-                ],
-                "summary": "Get OAuth access token",
-                "description": "Get OAuth2 access token using password grant",
-                "operationId": "3731bf6604cd37a4647cd7d6bc89a2e1",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "grant_type",
-                                    "client_id",
-                                    "client_secret",
-                                    "username",
-                                    "password"
-                                ],
-                                "properties": {
-                                    "grant_type": {
-                                        "type": "string",
-                                        "example": "password"
-                                    },
-                                    "client_id": {
-                                        "type": "string",
-                                        "example": "1"
-                                    },
-                                    "client_secret": {
-                                        "type": "string",
-                                        "example": "client_secret_here"
-                                    },
-                                    "username": {
-                                        "type": "string",
-                                        "example": "771234567"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "example": "1234"
-                                    },
-                                    "scope": {
-                                        "type": "string",
-                                        "example": "*"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Token generated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OAuthToken"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    },
-                    "401": {
-                        "description": "Invalid credentials"
-                    }
-                }
-            }
-        },
-        "/oauth/refresh": {
-            "post": {
-                "tags": [
-                    "OAuth"
-                ],
-                "summary": "Refresh OAuth access token",
-                "description": "Refresh OAuth2 access token using refresh token",
-                "operationId": "137b0179b39f232cec8f7031032b1c4d",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "grant_type",
-                                    "client_id",
-                                    "client_secret",
-                                    "refresh_token"
-                                ],
-                                "properties": {
-                                    "grant_type": {
-                                        "type": "string",
-                                        "example": "refresh_token"
-                                    },
-                                    "client_id": {
-                                        "type": "string",
-                                        "example": "1"
-                                    },
-                                    "client_secret": {
-                                        "type": "string",
-                                        "example": "client_secret_here"
-                                    },
-                                    "refresh_token": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Token refreshed successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/OAuthToken"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    },
-                    "401": {
-                        "description": "Invalid refresh token"
-                    }
-                }
             }
         },
         "/v1/comptes": {
@@ -651,6 +664,160 @@
                     },
                     "404": {
                         "description": "Account not found"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/v1/payments/initiate": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Initiate merchant payment",
+                "description": "Initiate a payment to a merchant",
+                "operationId": "1aa6d2bafe293645b1f923def2a63a96",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "marchand_id",
+                                    "montant"
+                                ],
+                                "properties": {
+                                    "marchand_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "montant": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 2500
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Paiement pour services"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment initiated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Paiement initié. Veuillez saisir le code de vérification."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "transaction_id": {
+                                                    "type": "integer",
+                                                    "example": 124
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/v1/payments/verify": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Verify and complete payment",
+                "description": "Verify payment with code and complete the transaction",
+                "operationId": "d04e999a50578fc7e54da03afec1df1d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "transaction_id",
+                                    "code"
+                                ],
+                                "properties": {
+                                    "transaction_id": {
+                                        "type": "integer",
+                                        "example": 124
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Paiement validé avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Transaction"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
                     }
                 },
                 "security": [
@@ -1357,6 +1524,160 @@
                     }
                 ]
             }
+        },
+        "/v1/transfers/initiate": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Initiate money transfer",
+                "description": "Initiate a money transfer to another account",
+                "operationId": "dd2cd7bd8c067c7e876a8fd53a9d5a2e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "destinataire_numero",
+                                    "montant"
+                                ],
+                                "properties": {
+                                    "destinataire_numero": {
+                                        "type": "string",
+                                        "example": "771234567"
+                                    },
+                                    "montant": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Transfert pour achat"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transfer initiated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transfert initié. Veuillez saisir le code de vérification."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "transaction_id": {
+                                                    "type": "integer",
+                                                    "example": 123
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/v1/transfers/verify": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Verify and complete transfer",
+                "description": "Verify transfer with code and complete the transaction",
+                "operationId": "4882148e48afaea79d116fb70349f2ee",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "transaction_id",
+                                    "code"
+                                ],
+                                "properties": {
+                                    "transaction_id": {
+                                        "type": "integer",
+                                        "example": 123
+                                    },
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transfer completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transfert validé avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Transaction"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -1369,23 +1690,23 @@
                     },
                     "nom": {
                         "type": "string",
-                        "example": "Doe"
+                        "example": "Diallo"
                     },
                     "prenom": {
                         "type": "string",
-                        "example": "John"
+                        "example": "Abdoulaye"
                     },
                     "nomComplet": {
                         "type": "string",
-                        "example": "Doe John"
+                        "example": "Diallo Abdoulaye"
                     },
                     "telephone": {
                         "type": "string",
-                        "example": "771234567"
+                        "example": "782917770"
                     },
                     "email": {
                         "type": "string",
-                        "example": "john.doe@example.com"
+                        "example": "abdoulaye.diallo@example.com"
                     },
                     "statut": {
                         "type": "string",
@@ -1406,7 +1727,7 @@
                     "soldeTotal": {
                         "type": "number",
                         "format": "float",
-                        "example": 1500.5
+                        "example": 0
                     },
                     "metadata": {
                         "properties": {
@@ -1424,6 +1745,31 @@
                             }
                         },
                         "type": "object"
+                    }
+                },
+                "type": "object"
+            },
+            "AuthToken": {
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    }
+                },
+                "type": "object"
+            },
+            "SmsSession": {
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "example": "123"
+                    },
+                    "sms_sent": {
+                        "type": "boolean",
+                        "example": true
                     }
                 },
                 "type": "object"
@@ -1553,12 +1899,6 @@
             }
         },
         "securitySchemes": {
-            "sanctum": {
-                "type": "apiKey",
-                "description": "Enter token in format: Bearer {token}",
-                "name": "Authorization",
-                "in": "header"
-            },
             "passport": {
                 "type": "apiKey",
                 "description": "Enter token in format (Bearer <token>)",
@@ -1579,10 +1919,6 @@
         {
             "name": "Authentication",
             "description": "Authentication"
-        },
-        {
-            "name": "OAuth",
-            "description": "OAuth"
         }
     ]
 }

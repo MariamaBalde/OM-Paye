@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class LoginRequest extends FormRequest
+class SendSmsRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,9 +22,11 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'telephone' => 'required|string|regex:/^[0-9]{9}$/',
-            'code_secret' => 'required|string|regex:/^[0-9]{4}$/',
-            'session_id' => 'required|string|exists:verification_codes,id',
+            'telephone' => [
+                'required',
+                'regex:/^[0-9]{9}$/',
+                'exists:users,telephone'
+            ],
         ];
     }
 
@@ -36,10 +38,7 @@ class LoginRequest extends FormRequest
         return [
             'telephone.required' => 'Le numéro de téléphone est obligatoire.',
             'telephone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
-            'code_secret.required' => 'Le code secret est obligatoire.',
-            'code_secret.regex' => 'Le code secret doit contenir exactement 4 chiffres.',
-            'session_id.required' => 'L\'identifiant de session est obligatoire.',
-            'session_id.exists' => 'Session invalide ou expirée.',
+            'telephone.exists' => 'Ce numéro de téléphone n\'est pas enregistré dans Orange Money.',
         ];
     }
 }

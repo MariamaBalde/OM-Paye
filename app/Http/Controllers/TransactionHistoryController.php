@@ -10,6 +10,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @OA\Tag(
+ *     name="Historique Transactions",
+ *     description="Consultation de l'historique des transactions"
+ * )
+ */
+
 class TransactionHistoryController extends Controller
 {
     use ApiResponseTrait;

@@ -13,6 +13,13 @@ use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @OA\Tag(
+ *     name="Transactions",
+ *     description="Gestion des transactions financières"
+ * )
+ */
+
 class PaymentController extends Controller
 {
     use ApiResponseTrait;
@@ -25,7 +32,36 @@ class PaymentController extends Controller
     }
 
     /**
-     * Initiate merchant payment
+     * @OA\Post(
+     *     path="/v1/payments/initiate",
+     *     summary="Initiate merchant payment",
+     *     description="Initiate a payment to a merchant",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"marchand_id","montant"},
+     *             @OA\Property(property="marchand_id", type="integer", example=1),
+     *             @OA\Property(property="montant", type="number", format="float", example=2500.00),
+     *             @OA\Property(property="description", type="string", example="Paiement pour services")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment initiated successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Paiement initié. Veuillez saisir le code de vérification."),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="transaction_id", type="integer", example=124)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
      */
     public function initiate(PaymentRequest $request): JsonResponse
     {
@@ -54,7 +90,32 @@ class PaymentController extends Controller
     }
 
     /**
-     * Verify and complete payment
+     * @OA\Post(
+     *     path="/v1/payments/verify",
+     *     summary="Verify and complete payment",
+     *     description="Verify payment with code and complete the transaction",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"transaction_id","code"},
+     *             @OA\Property(property="transaction_id", type="integer", example=124),
+     *             @OA\Property(property="code", type="string", example="123456")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Payment completed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Paiement validé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
      */
     public function verify(VerifyCodeRequest $request): JsonResponse
     {

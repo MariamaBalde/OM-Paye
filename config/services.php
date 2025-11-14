@@ -31,4 +31,25 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | SMS Services
+    |--------------------------------------------------------------------------
+    |
+    | Configuration pour les services SMS
+    | Plusieurs fournisseurs supportés : Orange, Twilio, HTTP API générique
+    |
+    */
+
+    'sms' => [
+        'default' => env('SMS_DRIVER', 'log'), // 'twilio', 'log'
+
+        // Configuration Twilio
+        'twilio' => [
+            'sid' => env('TWILIO_SID'),
+            'token' => env('TWILIO_TOKEN'),
+            'from_number' => env('TWILIO_FROM_NUMBER'),
+        ],
+    ],
+
 ];

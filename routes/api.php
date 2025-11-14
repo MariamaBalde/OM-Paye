@@ -22,16 +22,11 @@ use Illuminate\Support\Facades\Route;
 // Routes publiques (sans authentification)
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('verify-code-secret', [AuthController::class, 'verifyCodeSecret']);
 });
 
 // Route de test temporaire (sans auth)
 Route::get('test/profile', [AuthController::class, 'profile']);
-
-// Routes OAuth2 Passport
-Route::prefix('oauth')->group(function () {
-    Route::post('token', '\Laravel\Passport\Http\Controllers\AccessTokenController@issueToken');
-    Route::post('refresh', '\Laravel\Passport\Http\Controllers\TransientTokenController@refresh');
-});
 
 // API Version 1 - Architecture moderne avec US 2.0
 Route::prefix('v1')->middleware(['auth:api'])->group(function () {
