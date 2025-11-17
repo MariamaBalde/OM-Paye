@@ -17,4 +17,5 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+
 Route::get('/docs/api', [Dedoc\Scramble\Http\Controllers\ScrambleController::class, 'index']);

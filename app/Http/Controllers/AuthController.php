@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\SendSmsRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
@@ -78,7 +79,95 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/auth/login",
+     *     path="/auth/register",
+     *     summary="Inscription utilisateur Orange Money",
+     *     description="Créer un nouveau compte utilisateur avec numéro de téléphone et code secret",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"nom","prenom","telephone","code_secret"},
+     *             @OA\Property(property="nom", type="string", example="Diallo"),
+     *             @OA\Property(property="prenom", type="string", example="Abdoulaye"),
+     *             @OA\Property(property="telephone", type="string", example="774047668", description="Numéro de téléphone 9 chiffres"),
+     *             @OA\Property(property="code_secret", type="string", example="1234", description="Code secret 4 chiffres")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Compte créé avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Compte créé avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/User")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Données invalides",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Les données fournies ne sont pas valides."),
+     *             @OA\Property(property="errors", type="object")
+     *         )
+     *     )
+     * )
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $user = User::withoutEvents(function () use ($request) {
+            return User::create([
+                'nom' => $request->nom,
+                'prenom' => $request->prenom,
+                'telephone' => $request->telephone,
+                'password' => bcrypt('default_password'), // Mot de passe par défaut, peut être changé plus tard
+                'statut' => 'actif',
+                'langue' => 'français',
+                'theme_sombre' => false,
+                'scanner_actif' => true,
+            ]);
+        });
+
+        // Assigner le rôle client
+        $clientRole = \App\Models\Role::where('name', 'client')->first();
+        if ($clientRole) {
+            $user->assignRole($clientRole);
+        }
+
+        // Créer le compte avec le code secret personnalisé
+        $compte = \App\Models\Compte::create([
+            'user_id' => $user->id,
+            'numero_compte' => 'OMCPT' . time() . $user->id,
+            'solde' => 0.00,
+            'qr_code' => 'QR_' . $user->telephone,
+            'code_secret' => bcrypt($request->code_secret),
+            'plafond_journalier' => 500000.00,
+            'statut' => 'actif',
+            'date_ouverture' => now(),
+        ]);
+
+        // Créer le profil client
+        \App\Models\Client::create([
+            'compte_id' => $compte->id,
+            'type_client' => 'particulier',
+            'contacts_favoris' => json_encode([]),
+            'date_naissance' => null,
+            'adresse' => null,
+            'ville' => null,
+            'pays' => 'Sénégal',
+            'piece_identite_type' => null,
+            'piece_identite_numero' => null,
+        ]);
+
+        return $this->successResponse(
+            new UserResource($user),
+            'Compte créé avec succès',
+            201
+        );
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/auth/login",
      *     summary="Étape 1: Initiation de connexion OM Pay",
      *     description="Saisir numéro de téléphone → SMS envoyé automatiquement → Retourne session_id pour tracker la session",
      *     tags={"Authentication"},
@@ -91,7 +180,7 @@ class AuthController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="SMS envoyé avec succès - Prêt pour saisir le code secret",
+     *         description="SMS envoyé avec succès - Prêt pour vérification SMS",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="SMS envoyé"),
@@ -170,8 +259,8 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/auth/verify-code-secret",
-     *     summary="Étape 3: Vérification du code secret - Connexion finale",
+     *     path="/auth/verify-code-secret",
+     *     summary="Étape 2: Vérification du code secret - Connexion finale",
      *     description="Après vérification SMS côté backend → Saisir code secret (4 chiffres) → Connexion complète",
      *     tags={"Authentication"},
      *     @OA\RequestBody(
@@ -290,26 +379,7 @@ class AuthController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/v1/auth/refresh",
-     *     summary="Refresh access token",
-     *     description="Refresh the access token for authenticated user",
-     *     tags={"Authentication"},
-     *     security={{"passport":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Token refreshed successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Token rafraîchi avec succès"),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="token", type="string"),
-     *                 @OA\Property(property="token_type", type="string", example="Bearer")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized")
-     * )
+     * @OA\Hidden
      */
     public function refresh(): JsonResponse
     {
@@ -332,7 +402,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/v1/auth/profile",
+     *     path="/auth/profile",
      *     summary="Get user profile",
      *     description="Get the authenticated user's profile information",
      *     tags={"Authentication"},

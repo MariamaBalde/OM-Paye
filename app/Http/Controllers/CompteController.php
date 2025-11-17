@@ -42,59 +42,7 @@ class CompteController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/v1/comptes",
-     *     summary="List accounts",
-     *     description="List all accounts with US 2.0 compliance. Admin sees all accounts, client sees only their own.",
-     *     tags={"Comptes"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="limit",
-     *         in="query",
-     *         description="Number of items per page",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=10, maximum=100)
-     *     ),
-     *     @OA\Parameter(
-     *         name="statut",
-     *         in="query",
-     *         description="Account status filter",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"actif", "bloque", "ferme"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="search",
-     *         in="query",
-     *         description="Search by account number or holder name",
-     *         required=false,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="sort",
-     *         in="query",
-     *         description="Sort field",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"date_ouverture", "solde", "numero_compte", "statut"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="order",
-     *         in="query",
-     *         description="Sort order",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"asc", "desc"}, default="desc")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Accounts retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Comptes récupérés avec succès"),
-     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Compte"))
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=403, description="Forbidden")
-     * )
+     * @OA\Hidden
      */
     public function index(Request $request): JsonResponse
     {
@@ -130,7 +78,7 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/v1/comptes/balance",
+     *     path="/comptes/balance",
      *     summary="Get account balance",
      *     description="Get the balance of the user's primary account",
      *     tags={"Comptes"},
@@ -175,69 +123,53 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/v1/comptes/{compte}",
-     *     summary="Get account details",
-     *     description="Get detailed information about a specific account",
+     *     path="/comptes/{numero}",
+     *     summary="Check account existence",
+     *     description="Check if an account exists by account number (limited info for security)",
      *     tags={"Comptes"},
      *     security={{"passport":{}}},
      *     @OA\Parameter(
-     *         name="compte",
+     *         name="numero",
      *         in="path",
-     *         description="Account ID",
+     *         description="Account number",
      *         required=true,
-     *         @OA\Schema(type="integer")
+     *         @OA\Schema(type="string")
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Account details retrieved successfully",
+     *         description="Account found successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Détails du compte récupérés avec succès"),
-     *             @OA\Property(property="data", ref="#/components/schemas/Compte")
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=403, description="Forbidden"),
-     *     @OA\Response(response=404, description="Account not found")
-     * )
-     */
-    public function show(Compte $compte): JsonResponse
-    {
-        $user = auth()->user();
-
-        // Vérifier les autorisations
-        if (!$user->hasRole('admin') && $compte->user_id !== $user->id) {
-            throw new UnauthorizedException();
-        }
-
-        return $this->successResponse(
-            new CompteResource($compte->load(['user', 'client'])),
-            'Détails du compte récupérés avec succès'
-        );
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/v1/comptes/qr-code",
-     *     summary="Generate QR code",
-     *     description="Generate QR code for the user's primary account",
-     *     tags={"Comptes"},
-     *     security={{"passport":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="QR code generated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="QR Code généré avec succès"),
+     *             @OA\Property(property="message", type="string", example="Compte trouvé"),
      *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="qr_code", type="string", description="Base64 encoded QR code image"),
-     *                 @OA\Property(property="numero_compte", type="string", example="OM123456789")
+     *                 @OA\Property(property="numero_compte", type="string", example="771234567"),
+     *                 @OA\Property(property="destinataire", type="string", example="Fatou Sall"),
+     *                 @OA\Property(property="statut", type="string", example="actif")
      *             )
      *         )
      *     ),
      *     @OA\Response(response=401, description="Unauthorized"),
      *     @OA\Response(response=404, description="Account not found")
      * )
+     */
+    public function checkAccount(string $numero): JsonResponse
+    {
+        $compte = Compte::where('numero_compte', $numero)->first();
+
+        if (!$compte) {
+            return $this->notFoundResponse('Compte non trouvé');
+        }
+
+        // Retourner uniquement les informations limitées pour sécurité
+        return $this->successResponse([
+            'numero_compte' => $compte->numero_compte,
+            'destinataire' => $compte->user->nom . ' ' . $compte->user->prenom,
+            'statut' => $compte->statut
+        ], 'Compte trouvé');
+    }
+
+    /**
+     * @OA\Hidden
      */
     public function qrCode(): JsonResponse
     {

@@ -89,6 +89,7 @@ class UserSeeder extends Seeder
     ]);
     $user5->assignRole('client');
 
+
     $admin = \App\Models\User::create([
         'nom' => 'Admin',
         'prenom' => 'Orange',

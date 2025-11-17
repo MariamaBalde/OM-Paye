@@ -45,9 +45,7 @@ class TransactionService
      */
     public function initiateTransfer(array $data, int $userId): Transaction
     {
-        $compteEmetteur = Compte::where('user_id', $userId)
-            ->where('type', 'principal')
-            ->first();
+        $compteEmetteur = Compte::where('user_id', $userId)->first();
 
         $compteDestinataire = Compte::whereHas('user', function($q) use ($data) {
             $q->where('telephone', $data['destinataire_numero']);
@@ -88,9 +86,7 @@ class TransactionService
      */
     public function initiatePayment(array $data, int $userId): Transaction
     {
-        $compteEmetteur = Compte::where('user_id', $userId)
-            ->where('type', 'principal')
-            ->first();
+        $compteEmetteur = Compte::where('user_id', $userId)->first();
 
         $marchand = \App\Models\Marchand::where('code_marchand', $data['code_marchand'])->first();
         $montant = $data['montant'];

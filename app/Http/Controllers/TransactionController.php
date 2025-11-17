@@ -54,7 +54,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/transactions/transfer",
+     *     path="/transactions/transfer",
      *     summary="Initiate money transfer",
      *     description="Initiate a money transfer to another account",
      *     tags={"Transactions"},
@@ -108,7 +108,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/transactions/payment",
+     *     path="/transactions/payment",
      *     summary="Initiate merchant payment",
      *     description="Initiate a payment to a merchant",
      *     tags={"Transactions"},
@@ -162,7 +162,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/transactions/verify-code",
+     *     path="/transactions/verify-code",
      *     summary="Verify and complete transaction",
      *     description="Verify transaction with code and complete the transaction",
      *     tags={"Transactions"},
@@ -208,7 +208,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/v1/transactions/history",
+     *     path="/transactions/history",
      *     summary="Get transaction history",
      *     description="Get transaction history with US 2.0 compliance. Admin sees all transactions, client sees only their own.",
      *     tags={"Transactions"},
@@ -326,7 +326,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/v1/transactions/{id}",
+     *     path="/transactions/{id}",
      *     summary="Get transaction details",
      *     description="Get detailed information about a specific transaction",
      *     tags={"Transactions"},
@@ -371,72 +371,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/v1/transactions/search",
-     *     summary="Search transactions",
-     *     description="Advanced search for transactions with multiple filters",
-     *     tags={"Transactions"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="montant_min",
-     *         in="query",
-     *         description="Minimum amount",
-     *         required=false,
-     *         @OA\Schema(type="number", format="float")
-     *     ),
-     *     @OA\Parameter(
-     *         name="montant_max",
-     *         in="query",
-     *         description="Maximum amount",
-     *         required=false,
-     *         @OA\Schema(type="number", format="float")
-     *     ),
-     *     @OA\Parameter(
-     *         name="date_debut",
-     *         in="query",
-     *         description="Start date",
-     *         required=false,
-     *         @OA\Schema(type="string", format="date")
-     *     ),
-     *     @OA\Parameter(
-     *         name="date_fin",
-     *         in="query",
-     *         description="End date",
-     *         required=false,
-     *         @OA\Schema(type="string", format="date")
-     *     ),
-     *     @OA\Parameter(
-     *         name="type",
-     *         in="query",
-     *         description="Transaction type",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"transfert", "paiement", "depot", "retrait", "achat_credit"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="status",
-     *         in="query",
-     *         description="Transaction status",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"en_attente", "validee", "echouee", "annulee"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="per_page",
-     *         in="query",
-     *         description="Items per page",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=20)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Search results retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Résultats de recherche"),
-     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Transaction"))
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized")
-     * )
+     * @OA\Hidden
      */
     public function search(): JsonResponse
     {
@@ -451,50 +386,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/v1/transactions/statistics",
-     *     summary="Get transaction statistics",
-     *     description="Get statistics about transactions based on user role",
-     *     tags={"Transactions"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="periode",
-     *         in="query",
-     *         description="Period for statistics",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"today", "week", "month", "year"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="type",
-     *         in="query",
-     *         description="Transaction type filter",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"transfert", "paiement", "depot", "retrait", "achat_credit"})
-     *     ),
-     *     @OA\Parameter(
-     *         name="status",
-     *         in="query",
-     *         description="Transaction status filter",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"en_attente", "validee", "echouee", "annulee"})
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Statistics retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Statistiques récupérées"),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="total_transactions", type="integer"),
-     *                 @OA\Property(property="total_amount", type="number", format="float"),
-     *                 @OA\Property(property="average_amount", type="number", format="float"),
-     *                 @OA\Property(property="transactions_by_type", type="object"),
-     *                 @OA\Property(property="transactions_by_status", type="object")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized")
-     * )
+     * @OA\Hidden
      */
     public function statistics(): JsonResponse
     {

@@ -10,10 +10,13 @@ class UserObserver
 {
     public function created(User $user): void
     {
+        // Assigner automatiquement le rôle client aux nouveaux utilisateurs
+        $user->assignRole('client');
+
         // Créer le compte automatiquement
         $compte = Compte::create([
             'user_id' => $user->id,
-            'numero_compte' => 'OMCPT' . str_pad($user->id, 6, '0', STR_PAD_LEFT),
+            'numero_compte' => 'OMCPT' . time() . $user->id,
             'solde' => 0.00,
             'qr_code' => 'QR_' . $user->telephone,
             'code_secret' => bcrypt('1234'),

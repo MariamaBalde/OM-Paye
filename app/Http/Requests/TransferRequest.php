@@ -52,7 +52,7 @@ class TransferRequest extends FormRequest
             $user = auth()->user();
             $montant = $this->input('montant');
 
-            if ($user && $user->solde_fcfa < $montant) {
+            if ($user && $user->solde_total < $montant) {
                 $validator->errors()->add('montant', 'Solde insuffisant pour effectuer ce transfert.');
             }
 

@@ -8,78 +8,45 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - Orange Money
+| API Routes - Orange Money MVP
 |--------------------------------------------------------------------------
 |
-| Routes API versionnées avec architecture moderne
-| - Versioning explicite dans l'URL (/v1/)
-| - Middleware de taux pour protection
-| - Format de réponse standardisé
-| - Conformité US 2.0 pour les endpoints GET
+| Architecture minimale avec seulement les 11 endpoints essentiels
+| - Authentification (4 endpoints)
+| - Transactions (5 endpoints)
+| - Comptes (2 endpoints)
 |
 */
 
 // Routes publiques (sans authentification)
 Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('verify-code-secret', [AuthController::class, 'verifyCodeSecret']);
 });
 
-// Route de test temporaire (sans auth)
-Route::get('test/profile', [AuthController::class, 'profile']);
+// Authenticated routes - MVP Orange Money
+Route::middleware(['auth:api'])->group(function () {
 
-// API Version 1 - Architecture moderne avec US 2.0
-Route::prefix('v1')->middleware(['auth:api'])->group(function () {
-
-    // Authentification
+    // Authentification (2 endpoints supplémentaires)
     Route::prefix('auth')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('refresh', [AuthController::class, 'refresh']);
         Route::get('profile', [AuthController::class, 'profile']);
+        Route::post('logout', [AuthController::class, 'logout']);
     });
 
-    // Comptes bancaires (US 2.0 compliant)
+    // Comptes bancaires (2 endpoints)
     Route::prefix('comptes')->group(function () {
-        Route::get('/', [CompteController::class, 'index']);           // US 2.0: Lister comptes avec filtres
-        Route::get('/balance', [CompteController::class, 'balance']);  // Solde compte principal
-        Route::get('/qr-code', [CompteController::class, 'qrCode']);   // Générer QR code
-        Route::get('/{compte}', [CompteController::class, 'show']);     // Détails compte
+        Route::get('balance', [CompteController::class, 'balance']);
+        Route::get('{numero}', [CompteController::class, 'checkAccount']);
     });
 
-    // Transactions financières
+    // Transactions financières (5 endpoints)
     Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
-        Route::post('transfer', [TransactionController::class, 'transfer']);     // Initier transfert
-        Route::post('payment', [TransactionController::class, 'payment']);       // Effectuer paiement
-        Route::post('verify-code', [TransactionController::class, 'verifyCode']); // Vérifier transaction
-        Route::get('history', [TransactionController::class, 'history']);        // Historique (US 2.0)
-    });
-
-});
-
-// API Legacy - Pour compatibilité (sera dépréciée)
-Route::middleware('auth:api')->group(function () {
-
-    // Authentification (legacy)
-    Route::prefix('auth')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('refresh', [AuthController::class, 'refresh']);
-        Route::get('profile', [AuthController::class, 'profile']);
-    });
-
-    // Comptes bancaires (legacy)
-    Route::prefix('comptes')->group(function () {
-        Route::get('/', [CompteController::class, 'index']);
-        Route::get('/balance', [CompteController::class, 'balance']);
-        Route::get('/qr-code', [CompteController::class, 'qrCode']);
-        Route::get('/{compte}', [CompteController::class, 'show']);
-    });
-
-    // Transactions financières (legacy)
-    Route::prefix('transactions')->group(function () {
         Route::post('transfer', [TransactionController::class, 'transfer']);
-        Route::post('payment', [TransactionController::class, 'payment']);
-        Route::post('verify-code', [TransactionController::class, 'verifyCode']);
+        Route::post('payment-merchant', [TransactionController::class, 'payment']);
+        Route::post('verify', [TransactionController::class, 'verifyCode']);
         Route::get('history', [TransactionController::class, 'history']);
+        Route::get('{id}', [TransactionController::class, 'show']);
     });
 
 });
