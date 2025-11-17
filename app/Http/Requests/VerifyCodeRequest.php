@@ -52,7 +52,9 @@ class VerifyCodeRequest extends FormRequest
 
             // Vérifier que la transaction appartient à l'utilisateur
             $transaction = \App\Models\Transaction::where('id', $transactionId)
-                ->where('user_id', $user->id)
+                ->whereHas('emetteur', function($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
                 ->first();
 
             if (!$transaction) {

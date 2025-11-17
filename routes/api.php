@@ -43,8 +43,8 @@ Route::middleware(['auth:api'])->group(function () {
     // Transactions financières (5 endpoints)
     Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
         Route::post('transfer', [TransactionController::class, 'transfer']);
-        Route::post('payment-merchant', [TransactionController::class, 'payment']);
-        Route::post('verify', [TransactionController::class, 'verifyCode']);
+        Route::post('payment', [TransactionController::class, 'payment']);
+        Route::post('verify-code', [TransactionController::class, 'verifyCode']);
         Route::get('history', [TransactionController::class, 'history']);
         Route::get('{id}', [TransactionController::class, 'show']);
     });
