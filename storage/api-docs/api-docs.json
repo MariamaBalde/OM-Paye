@@ -661,14 +661,13 @@
                 ]
             }
         },
-        "/transactions/transfer": {
+        "/transactions/transfert": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Process money transfer",
-                "description": "Process a money transfer to another account",
-                "operationId": "f5c88591ca5dacf77aaea5b9f6501116",
+                "description": "Processus transfert d'argent a un autre compte",
+                "operationId": "d43c7f1335e9d9c21a6da647a0c51905",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -739,14 +738,13 @@
                 ]
             }
         },
-        "/transactions/payment": {
+        "/transactions/paiement": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Process merchant payment",
-                "description": "Process a payment to a merchant",
-                "operationId": "219093423f3394439c61acf8fd153334",
+                "description": "Processus paiement pour un marchand",
+                "operationId": "c8a5700cdbad860316e7147837e15f0e",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -817,14 +815,157 @@
                 ]
             }
         },
-        "/transactions/{numerocompte}/history": {
+        "/transactions/depot": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "description": "Processus de dépôt à l'account",
+                "operationId": "c5c6fcd2b5e5d5bd4f38e9e94c33b9e7",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "montant"
+                                ],
+                                "properties": {
+                                    "montant": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 50000
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Dépôt initial"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Deposit processed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dépôt effectué avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Transaction"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/transactions/retrait": {
+            "post": {
+                "tags": [
+                    "Transactions"
+                ],
+                "description": "Processus de retrait du compte",
+                "operationId": "77ca9b114883a78882f83147157059d4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "montant"
+                                ],
+                                "properties": {
+                                    "montant": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 20000
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Retrait pour achat"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Withdrawal processed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Retrait effectué avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Transaction"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/transactions/{numero_compte}/history": {
             "get": {
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Get transaction history for account",
-                "description": "Get transaction history for a specific account with filters",
-                "operationId": "8cae70e8b79d0030d9c876bcc4572832",
+                "description": "Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
+                "operationId": "a13721cbc14a420611847fc377093f92",
                 "parameters": [
                     {
                         "name": "numerocompte",

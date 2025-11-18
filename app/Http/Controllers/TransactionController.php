@@ -54,9 +54,8 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/transfer",
-     *     summary="Process money transfer",
-     *     description="Process a money transfer to another account",
+     *     path="/transactions/transfert",
+     *     description="Processus transfert d'argent a un autre compte",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\RequestBody(
@@ -106,9 +105,8 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/payment",
-     *     summary="Process merchant payment",
-     *     description="Process a payment to a merchant",
+     *     path="/transactions/paiement",
+     *     description="Processus paiement pour un marchand",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\RequestBody(
@@ -156,12 +154,108 @@ class TransactionController extends Controller
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/transactions/depot",
+     *     description="Processus de dépôt à l'account",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"montant"},
+     *             @OA\Property(property="montant", type="number", format="float", example=50000.00),
+     *             @OA\Property(property="description", type="string", example="Dépôt initial")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Deposit processed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Dépôt effectué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function deposit(Request $request): JsonResponse
+    {
+        // Vérification des autorisations
+        // if (!Gate::allows('deposit-money')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des dépôts.', 403);
+        // }
+
+        try {
+            $transaction = $this->transactionService->processDeposit(
+                $request->all(),
+                auth()->id()
+            );
+
+            return $this->successResponse(
+                new TransactionResource($transaction->load(['emetteur.user'])),
+                'Dépôt effectué avec succès'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/transactions/retrait",
+     *     description="Processus de retrait du compte",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"montant"},
+     *             @OA\Property(property="montant", type="number", format="float", example=20000.00),
+     *             @OA\Property(property="description", type="string", example="Retrait pour achat")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Withdrawal processed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Retrait effectué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function withdrawal(Request $request): JsonResponse
+    {
+        
+
+        try {
+            $transaction = $this->transactionService->processWithdrawal(
+                $request->all(),
+                auth()->id()
+            );
+
+            return $this->successResponse(
+                new TransactionResource($transaction->load(['emetteur.user'])),
+                'Retrait effectué avec succès'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
+
 
     /**
      * @OA\Get(
-     *     path="/transactions/{numerocompte}/history",
-     *     summary="Get transaction history for account",
-     *     description="Get transaction history for a specific account with filters",
+     *     path="/transactions/{numero_compte}/history",
+     *     description="Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\Parameter(
@@ -289,101 +383,9 @@ class TransactionController extends Controller
     }
 
 
-    /**
-     * @OA\Hidden
-     */
-    public function search(): JsonResponse
-    {
-        $criteria = request()->only([
-            'montant_min', 'montant_max', 'date_debut', 'date_fin',
-            'type', 'status', 'per_page'
-        ]);
+  
 
-        $transactions = $this->transactionRepository->search($criteria);
+    
 
-        return $this->paginatedResponse($transactions, 'Résultats de recherche');
-    }
-
-    /**
-     * @OA\Hidden
-     */
-    public function statistics(): JsonResponse
-    {
-        $user = auth()->user();
-        $filters = request()->only(['periode', 'type', 'status']);
-
-        // Pour les clients, statistiques personnelles
-        if ($user->hasRole('client')) {
-            $filters['user_id'] = $user->id;
-        }
-        // Pour les admins, statistiques globales
-        elseif ($user->hasRole('admin')) {
-            // Pas de filtre user_id pour les admins
-        }
-        // Pour les marchands, statistiques de leurs transactions
-        elseif ($user->hasRole('marchand')) {
-            $filters['marchand_id'] = $user->marchand?->id;
-        }
-
-        $stats = $this->transactionRepository->getStatistics($filters);
-
-        return $this->successResponse($stats, 'Statistiques récupérées');
-    }
-
-    /**
-     * Appliquer les filtres de requête aux transactions
-     */
-    private function applyTransactionFilters($query, Request $request)
-    {
-        // Filtre par type
-        if ($request->has('type') && in_array($request->type, ['transfert', 'paiement', 'depot', 'retrait', 'achat_credit'])) {
-            $query->where('type', $request->type);
-        }
-
-        // Filtre par statut
-        if ($request->has('status') && in_array($request->status, ['en_attente', 'validee', 'echouee', 'annulee'])) {
-            $query->where('statut', $request->status);
-        }
-
-        // Filtre par montant
-        if ($request->has('montant_min') && is_numeric($request->montant_min)) {
-            $query->where('montant', '>=', $request->montant_min);
-        }
-
-        if ($request->has('montant_max') && is_numeric($request->montant_max)) {
-            $query->where('montant', '<=', $request->montant_max);
-        }
-
-        // Filtre par période
-        if ($request->has('periode') && in_array($request->periode, ['today', 'week', 'month', 'year'])) {
-            $query->periode($request->periode);
-        }
-
-        // Filtre par destinataire
-        if ($request->has('destinataire') && !empty($request->destinataire)) {
-            $query->where('destinataire_numero', 'like', "%{$request->destinataire}%")
-                  ->orWhere('destinataire_nom', 'like', "%{$request->destinataire}%");
-        }
-
-        // Recherche générale
-        if ($request->has('search') && !empty($request->search)) {
-            $query->rechercher($request->search);
-        }
-    }
-
-    /**
-     * Appliquer le tri aux transactions
-     */
-    private function applyTransactionSorting($query, Request $request)
-    {
-        $sortBy = $request->get('sort', 'created_at');
-        $order = strtolower($request->get('order', 'desc'));
-
-        // Valider l'ordre
-        if (!in_array($order, ['asc', 'desc'])) {
-            $order = 'desc';
-        }
-
-        $query->trierPar($sortBy, $order);
-    }
+   
 }

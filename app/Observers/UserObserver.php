@@ -28,15 +28,6 @@ class UserObserver
         // Créer le profil client automatiquement
         Client::create([
             'compte_id' => $compte->id,
-            'type_client' => 'particulier',
-            // SUPPRIMER numero_client (n'existe pas dans la migration)
-            'contacts_favoris' => json_encode([]),
-            'date_naissance' => null,
-            'adresse' => null,
-            'ville' => null,
-            'pays' => 'Sénégal',
-            'piece_identite_type' => null,
-            'piece_identite_numero' => null,
         ]);
     }
 

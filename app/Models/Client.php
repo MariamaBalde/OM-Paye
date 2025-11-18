@@ -11,19 +11,10 @@ class Client extends Model
 
     protected $fillable = [
         'compte_id',
-        'type_client',
-        'date_naissance',
-        'adresse',
-        'ville',
-        'pays',
-        'piece_identite_type',
-        'piece_identite_numero',
-        'contacts_favoris',
     ];
 
     protected $casts = [
-        'date_naissance' => 'date',
-        'contacts_favoris' => 'array',
+        //
     ];
 
     public function compte()

@@ -13,17 +13,11 @@ class Marchand extends Model
         'compte_id',
         'nom_commercial',
         'code_marchand',
-        'qr_code_marchand',
-        'secteur_activite',
-        'adresse_boutique',
-        'ville',
-        'telephone_professionnel',
         'statut',
-        'commission_rate',
     ];
 
     protected $casts = [
-        'commission_rate' => 'decimal:4',
+        //
     ];
 
     public function compte()

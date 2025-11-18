@@ -173,14 +173,6 @@ class AuthController extends Controller
         // Créer le profil client
         \App\Models\Client::create([
             'compte_id' => $compte->id,
-            'type_client' => 'particulier',
-            'contacts_favoris' => json_encode([]),
-            'date_naissance' => null,
-            'adresse' => null,
-            'ville' => null,
-            'pays' => 'Sénégal',
-            'piece_identite_type' => null,
-            'piece_identite_numero' => null,
         ]);
 
         return $this->successResponse(

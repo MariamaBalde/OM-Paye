@@ -26,6 +26,16 @@ Route::prefix('auth')->group(function () {
     Route::post('refresh', [AuthController::class, 'refresh']);
 });
 
+// Test route for getting token (temporary)
+Route::get('test-token', function () {
+    $user = \App\Models\User::where('telephone', '770129911')->first();
+    if ($user) {
+        $token = $user->createToken('TestToken')->accessToken;
+        return response()->json(['token' => $token]);
+    }
+    return response()->json(['error' => 'User not found'], 404);
+});
+
 // Authenticated routes - MVP Orange Money
 Route::middleware(['auth:api'])->group(function () {
 
@@ -45,10 +55,12 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('{numcompte}/balance', [CompteController::class, 'balance']);
     });
 
-    // Transactions financières (3 endpoints)
+    // Transactions financières (5 endpoints)
     Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
         Route::post('transfer', [TransactionController::class, 'transfer']);
         Route::post('payment', [TransactionController::class, 'payment']);
+        Route::post('deposit', [TransactionController::class, 'deposit']);
+        Route::post('withdrawal', [TransactionController::class, 'withdrawal']);
         Route::get('{numerocompte}/history', [TransactionController::class, 'history']);
     });
 
