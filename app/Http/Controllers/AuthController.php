@@ -159,7 +159,7 @@ class AuthController extends Controller
         ]);
 
         return $this->successResponse(
-            new UserResource($user),
+            null,
             'Compte créé avec succès',
             201
         );
@@ -340,12 +340,14 @@ class AuthController extends Controller
         $verificationCode->update(['verifie' => true]);
 
         // Générer token Passport
-        $token = $user->createToken('OrangeMoney')->accessToken;
+        $tokenResult = $user->createToken('OrangeMoney');
 
         return $this->successResponse(
             [
-                'token' => $token,
-                'user' => new UserResource($user),
+                'token_type' => 'Bearer',
+                'expires_in' => null, // Personal access tokens don't expire
+                'access_token' => $tokenResult->accessToken,
+                'refresh_token' => null, // Personal access tokens don't have refresh tokens
             ],
             'Connexion réussie'
         );
