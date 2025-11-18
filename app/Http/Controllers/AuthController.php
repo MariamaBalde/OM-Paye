@@ -6,13 +6,19 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\SendSmsRequest;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\TransactionResource;
 use App\Models\User;
 use App\Models\VerificationCode;
+use App\Models\Transaction;
 use App\Services\SmsService;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Laravel\Passport\Token;
+use Laravel\Passport\RefreshToken;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @OA\Info(
@@ -54,8 +60,10 @@ use Illuminate\Support\Facades\Log;
  * @OA\Schema(
  *     schema="AuthToken",
  *     type="object",
- *     @OA\Property(property="token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
- *     @OA\Property(property="user", ref="#/components/schemas/User")
+ *     @OA\Property(property="token_type", type="string", example="Bearer"),
+ *     @OA\Property(property="expires_in", type="integer", example=31536000),
+ *     @OA\Property(property="access_token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
+ *     @OA\Property(property="refresh_token", type="string", example="refresh_token_string")
  * )
  * @OA\Schema(
  *     schema="SmsSession",
@@ -70,6 +78,23 @@ use Illuminate\Support\Facades\Log;
  *     @OA\Property(property="expires_in", type="integer", example=31536000),
  *     @OA\Property(property="access_token", type="string"),
  *     @OA\Property(property="refresh_token", type="string")
+ * )
+ * @OA\Schema(
+ *     schema="Dashboard",
+ *     type="object",
+ *     @OA\Property(property="user", type="object",
+ *         @OA\Property(property="id", type="integer", example=1),
+ *         @OA\Property(property="nom", type="string", example="Diallo")
+ *     ),
+ *     @OA\Property(property="compte", type="object",
+ *         @OA\Property(property="id", type="integer", example=1),
+ *         @OA\Property(property="numero", type="string", example="OMCPT1234567890"),
+ *         @OA\Property(property="solde", type="number", format="float", example=1500.50),
+ *         @OA\Property(property="qrCode", type="string", example="QR_774047668")
+ *     ),
+ *     @OA\Property(property="recentTransactions", type="array",
+ *         @OA\Items(ref="#/components/schemas/Transaction")
+ *     )
  * )
  */
 
@@ -278,7 +303,12 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Connexion réussie"),
-     *             @OA\Property(property="data", ref="#/components/schemas/AuthToken")
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="token_type", type="string", example="Bearer"),
+     *                 @OA\Property(property="expires_in", type="integer", example=31536000),
+     *                 @OA\Property(property="access_token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
+     *                 @OA\Property(property="refresh_token", type="string", example="refresh_token_string")
+     *             )
      *         )
      *     ),
      *     @OA\Response(
@@ -339,15 +369,25 @@ class AuthController extends Controller
         // Marquer le code de vérification comme utilisé
         $verificationCode->update(['verifie' => true]);
 
-        // Générer token Passport
+        // Créer un token d'accès personnel (qui fonctionne comme OAuth2 token)
         $tokenResult = $user->createToken('OrangeMoney');
+
+        // Créer un refresh token associé
+        $refreshTokenId = Str::random(40);
+        $refreshToken = new RefreshToken([
+            'id' => $refreshTokenId,
+            'access_token_id' => $tokenResult->token->id,
+            'revoked' => false,
+            'expires_at' => Carbon::now()->addDays(365),
+        ]);
+        $refreshToken->save();
 
         return $this->successResponse(
             [
                 'token_type' => 'Bearer',
-                'expires_in' => null, // Personal access tokens don't expire
+                'expires_in' => 31536000, // 1 an en secondes
                 'access_token' => $tokenResult->accessToken,
-                'refresh_token' => null, // Personal access tokens don't have refresh tokens
+                'refresh_token' => $refreshTokenId,
             ],
             'Connexion réussie'
         );
@@ -373,30 +413,101 @@ class AuthController extends Controller
      */
     public function logout(): JsonResponse
     {
-        // Pour Passport, on révoque le token actuel
-        $accessToken = auth()->user()->token();
-        $accessToken->revoke();
+        $request = request();
 
-        return $this->successResponse('Déconnexion réussie');
+        // Révoquer le token d'accès si fourni
+        if ($request->has('access_token')) {
+            $accessToken = Token::where('id', $request->access_token)
+                ->where('revoked', false)
+                ->first();
+
+            if ($accessToken) {
+                $accessToken->update(['revoked' => true]);
+
+                // Révoquer aussi les refresh tokens associés
+                RefreshToken::where('access_token_id', $accessToken->id)
+                    ->update(['revoked' => true]);
+            }
+        }
+
+        return $this->successResponse(null, 'Déconnexion réussie');
     }
 
     /**
-     * @OA\Hidden
+     * @OA\Post(
+     *     path="/auth/refresh",
+     *     summary="Refresh access token",
+     *     description="Use refresh token to get a new access token",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"refresh_token"},
+     *             @OA\Property(property="refresh_token", type="string", example="refresh_token_string")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Token refreshed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Token rafraîchi avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/AuthToken")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Refresh token required"),
+     *     @OA\Response(response=401, description="Invalid refresh token")
+     * )
      */
     public function refresh(): JsonResponse
     {
-        $user = auth()->user();
+        $request = request();
 
-        // Révoquer l'ancien token
-        $user->token()->revoke();
+        if (!$request->has('refresh_token')) {
+            return $this->errorResponse('Refresh token requis', 400);
+        }
 
-        // Créer un nouveau token
-        $newToken = $user->createToken('OrangeMoney')->accessToken;
+        // Trouver le refresh token
+        $refreshToken = RefreshToken::where('id', $request->refresh_token)
+            ->where('revoked', false)
+            ->where('expires_at', '>', Carbon::now())
+            ->first();
+
+        if (!$refreshToken) {
+            return $this->errorResponse('Refresh token invalide ou expiré', 401);
+        }
+
+        // Récupérer l'ancien access token et le révoquer
+        $oldAccessToken = Token::find($refreshToken->access_token_id);
+        if ($oldAccessToken) {
+            $oldAccessToken->update(['revoked' => true]);
+            $user = $oldAccessToken->user;
+        } else {
+            return $this->errorResponse('Token associé introuvable', 401);
+        }
+
+        // Révoquer l'ancien refresh token
+        $refreshToken->update(['revoked' => true]);
+
+        // Créer un nouveau token d'accès personnel
+        $newTokenResult = $user->createToken('OrangeMoney');
+
+        // Créer un nouveau refresh token
+        $newRefreshTokenId = Str::random(40);
+        $newRefreshToken = new RefreshToken([
+            'id' => $newRefreshTokenId,
+            'access_token_id' => $newTokenResult->token->id,
+            'revoked' => false,
+            'expires_at' => Carbon::now()->addDays(365),
+        ]);
+        $newRefreshToken->save();
 
         return $this->successResponse(
             [
-                'token' => $newToken,
                 'token_type' => 'Bearer',
+                'expires_in' => 31536000,
+                'access_token' => $newTokenResult->accessToken,
+                'refresh_token' => $newRefreshTokenId,
             ],
             'Token rafraîchi avec succès'
         );
@@ -432,6 +543,81 @@ class AuthController extends Controller
         return $this->successResponse(
             new UserResource($user),
             'Profil récupéré avec succès'
+        );
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/client/dashboard",
+     *     summary="Get client dashboard data",
+     *     description="Get dashboard data including user info, account details, and recent transactions",
+     *     tags={"Dashboard"},
+     *     security={{"passport":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard data retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Données du dashboard récupérées avec succès"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="user", type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="nom", type="string", example="Diallo")
+     *                 ),
+     *                 @OA\Property(property="compte", type="object",
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="numero", type="string", example="OMCPT1234567890"),
+     *                     @OA\Property(property="solde", type="number", format="float", example=1500.50),
+     *                     @OA\Property(property="qrCode", type="string", example="QR_774047668")
+     *                 ),
+     *                 @OA\Property(property="recentTransactions", type="array",
+     *                     @OA\Items(ref="#/components/schemas/Transaction")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=404, description="Account not found")
+     * )
+     */
+    public function dashboard(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return $this->errorResponse('Utilisateur non authentifié', 401);
+        }
+
+        $compte = $user->compte;
+
+        if (!$compte) {
+            return $this->errorResponse('Compte non trouvé', 404);
+        }
+
+        // Récupérer les 10 dernières transactions validées
+        $recentTransactions = Transaction::pourUtilisateur($user->id)
+            ->validee()
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        $dashboardData = [
+            'user' => [
+                'id' => $user->id,
+                'nom' => $user->nom,
+            ],
+            'compte' => [
+                'id' => $compte->id,
+                'numero' => $compte->numero_compte,
+                'solde' => (float) $compte->solde,
+                'qrCode' => $compte->qr_code,
+            ],
+            'recentTransactions' => TransactionResource::collection($recentTransactions),
+        ];
+
+        return $this->successResponse(
+            $dashboardData,
+            'Données du dashboard récupérées avec succès'
         );
     }
 

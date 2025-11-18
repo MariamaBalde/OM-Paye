@@ -256,7 +256,25 @@
                                             "example": "Connexion réussie"
                                         },
                                         "data": {
-                                            "$ref": "#/components/schemas/AuthToken"
+                                            "properties": {
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                },
+                                                "expires_in": {
+                                                    "type": "integer",
+                                                    "example": 31536000
+                                                },
+                                                "access_token": {
+                                                    "type": "string",
+                                                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                                },
+                                                "refresh_token": {
+                                                    "type": "string",
+                                                    "example": "refresh_token_string"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -367,6 +385,66 @@
                 ]
             }
         },
+        "/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "description": "Use refresh token to get a new access token",
+                "operationId": "f6c9683ed975ace7d035a09e6e2a9332",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "type": "string",
+                                        "example": "refresh_token_string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token refreshed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token rafraîchi avec succès"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/AuthToken"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Refresh token required"
+                    },
+                    "401": {
+                        "description": "Invalid refresh token"
+                    }
+                }
+            }
+        },
         "/auth/profile": {
             "get": {
                 "tags": [
@@ -410,14 +488,114 @@
                 ]
             }
         },
-        "/comptes/balance": {
+        "/client/dashboard": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get client dashboard data",
+                "description": "Get dashboard data including user info, account details, and recent transactions",
+                "operationId": "3235f355f3cbce0f76e8a8f24c834379",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Données du dashboard récupérées avec succès"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Diallo"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "compte": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "numero": {
+                                                            "type": "string",
+                                                            "example": "OMCPT1234567890"
+                                                        },
+                                                        "solde": {
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "example": 1500.5
+                                                        },
+                                                        "qrCode": {
+                                                            "type": "string",
+                                                            "example": "QR_774047668"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "recentTransactions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Transaction"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Account not found"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/comptes/{numcompte}/balance": {
             "get": {
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Get account balance",
-                "description": "Get the balance of the user's primary account",
-                "operationId": "f7110c953d79287de987b92733b07956",
+                "summary": "Get account balance by account number",
+                "description": "Get the balance of a specific account by its account number",
+                "operationId": "22a5e797e7c2865bb9203c6582a036f2",
+                "parameters": [
+                    {
+                        "name": "numcompte",
+                        "in": "path",
+                        "description": "Account number",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Balance retrieved successfully",
@@ -439,10 +617,6 @@
                                                     "type": "number",
                                                     "format": "float",
                                                     "example": 1500.5
-                                                },
-                                                "solde_formate": {
-                                                    "type": "string",
-                                                    "example": "1 500,50 FCFA"
                                                 },
                                                 "numero_compte": {
                                                     "type": "string",
@@ -473,76 +647,8 @@
                     "401": {
                         "description": "Unauthorized"
                     },
-                    "404": {
-                        "description": "Account not found"
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/comptes/{numero}": {
-            "get": {
-                "tags": [
-                    "Comptes"
-                ],
-                "summary": "Check account existence",
-                "description": "Check if an account exists by account number (limited info for security)",
-                "operationId": "4f24372752e1da91b11a79340b360c58",
-                "parameters": [
-                    {
-                        "name": "numero",
-                        "in": "path",
-                        "description": "Account number",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Account found successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Compte trouvé"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "numero_compte": {
-                                                    "type": "string",
-                                                    "example": "771234567"
-                                                },
-                                                "destinataire": {
-                                                    "type": "string",
-                                                    "example": "Fatou Sall"
-                                                },
-                                                "statut": {
-                                                    "type": "string",
-                                                    "example": "actif"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
+                    "403": {
+                        "description": "Access denied to this account"
                     },
                     "404": {
                         "description": "Account not found"
@@ -560,8 +666,8 @@
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Initiate money transfer",
-                "description": "Initiate a money transfer to another account",
+                "summary": "Process money transfer",
+                "description": "Process a money transfer to another account",
                 "operationId": "f5c88591ca5dacf77aaea5b9f6501116",
                 "requestBody": {
                     "required": true,
@@ -594,7 +700,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Transfer initiated successfully",
+                        "description": "Transfer processed successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -605,16 +711,10 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Transfert initié. Veuillez saisir le code de vérification."
+                                            "example": "Transfert effectué avec succès"
                                         },
                                         "data": {
-                                            "properties": {
-                                                "transaction_id": {
-                                                    "type": "integer",
-                                                    "example": 123
-                                                }
-                                            },
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/Transaction"
                                         }
                                     },
                                     "type": "object"
@@ -644,8 +744,8 @@
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Initiate merchant payment",
-                "description": "Initiate a payment to a merchant",
+                "summary": "Process merchant payment",
+                "description": "Process a payment to a merchant",
                 "operationId": "219093423f3394439c61acf8fd153334",
                 "requestBody": {
                     "required": true,
@@ -653,13 +753,13 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "marchand_id",
+                                    "code_marchand",
                                     "montant"
                                 ],
                                 "properties": {
-                                    "marchand_id": {
-                                        "type": "integer",
-                                        "example": 1
+                                    "code_marchand": {
+                                        "type": "string",
+                                        "example": "MARCHAND001"
                                     },
                                     "montant": {
                                         "type": "number",
@@ -678,7 +778,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Payment initiated successfully",
+                        "description": "Payment processed successfully",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -689,16 +789,10 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Paiement initié. Veuillez saisir le code de vérification."
+                                            "example": "Paiement effectué avec succès"
                                         },
                                         "data": {
-                                            "properties": {
-                                                "transaction_id": {
-                                                    "type": "integer",
-                                                    "example": 124
-                                                }
-                                            },
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/Transaction"
                                         }
                                     },
                                     "type": "object"
@@ -723,85 +817,24 @@
                 ]
             }
         },
-        "/transactions/verify-code": {
-            "post": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Verify and complete transaction",
-                "description": "Verify transaction with code and complete the transaction",
-                "operationId": "1a6696e2f012bddd88d952f6a655cf82",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "transaction_id",
-                                    "code"
-                                ],
-                                "properties": {
-                                    "transaction_id": {
-                                        "type": "integer",
-                                        "example": 123
-                                    },
-                                    "code": {
-                                        "type": "string",
-                                        "example": "123456"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Transaction completed successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Transaction validée avec succès"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/Transaction"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/transactions/history": {
+        "/transactions/{numerocompte}/history": {
             "get": {
                 "tags": [
                     "Transactions"
                 ],
-                "summary": "Get transaction history",
-                "description": "Get transaction history with US 2.0 compliance. Admin sees all transactions, client sees only their own.",
-                "operationId": "8b99176af7f5e4dae053dfe23da0eed2",
+                "summary": "Get transaction history for account",
+                "description": "Get transaction history for a specific account with filters",
+                "operationId": "8cae70e8b79d0030d9c876bcc4572832",
                 "parameters": [
+                    {
+                        "name": "numerocompte",
+                        "in": "path",
+                        "description": "Account number",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "per_page",
                         "in": "query",
@@ -944,67 +977,10 @@
                         "description": "Unauthorized"
                     },
                     "403": {
-                        "description": "Forbidden"
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/transactions/{id}": {
-            "get": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Get transaction details",
-                "description": "Get detailed information about a specific transaction",
-                "operationId": "2a6d0d9d6950359d14a92f71c3a55b6d",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "Transaction ID",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Transaction details retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Transaction récupérée"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/Transaction"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized"
-                    },
-                    "403": {
-                        "description": "Forbidden"
+                        "description": "Access denied to this account"
                     },
                     "404": {
-                        "description": "Transaction not found"
+                        "description": "Account not found"
                     }
                 },
                 "security": [
@@ -1086,12 +1062,21 @@
             },
             "AuthToken": {
                 "properties": {
-                    "token": {
+                    "token_type": {
+                        "type": "string",
+                        "example": "Bearer"
+                    },
+                    "expires_in": {
+                        "type": "integer",
+                        "example": 31536000
+                    },
+                    "access_token": {
                         "type": "string",
                         "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                     },
-                    "user": {
-                        "$ref": "#/components/schemas/User"
+                    "refresh_token": {
+                        "type": "string",
+                        "example": "refresh_token_string"
                     }
                 },
                 "type": "object"
@@ -1124,6 +1109,52 @@
                     },
                     "refresh_token": {
                         "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "Dashboard": {
+                "properties": {
+                    "user": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "nom": {
+                                "type": "string",
+                                "example": "Diallo"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "compte": {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "numero": {
+                                "type": "string",
+                                "example": "OMCPT1234567890"
+                            },
+                            "solde": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 1500.5
+                            },
+                            "qrCode": {
+                                "type": "string",
+                                "example": "QR_774047668"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "recentTransactions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Transaction"
+                        }
                     }
                 },
                 "type": "object"
@@ -1254,6 +1285,10 @@
         {
             "name": "Authentication",
             "description": "Authentication"
+        },
+        {
+            "name": "Dashboard",
+            "description": "Dashboard"
         }
     ]
 }

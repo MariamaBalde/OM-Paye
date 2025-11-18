@@ -15,6 +15,7 @@ class PassportClientSeeder extends Seeder
     {
         // Supprimer les clients existants pour éviter les conflits
         Client::where('personal_access_client', 1)->delete();
+        Client::where('password_client', 1)->delete();
 
         // Créer un client d'accès personnel avec ID 1
         Client::updateOrCreate(
@@ -25,6 +26,19 @@ class PassportClientSeeder extends Seeder
                 'redirect' => 'http://localhost',
                 'personal_access_client' => 1,
                 'password_client' => 0,
+                'revoked' => 0,
+            ]
+        );
+
+        // Créer un client password grant avec ID 2
+        Client::updateOrCreate(
+            ['id' => 2],
+            [
+                'name' => 'Password Grant Client',
+                'secret' => 'password_secret_123456789',
+                'redirect' => 'http://localhost',
+                'personal_access_client' => 0,
+                'password_client' => 1,
                 'revoked' => 0,
             ]
         );

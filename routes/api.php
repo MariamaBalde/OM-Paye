@@ -23,6 +23,7 @@ Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('verify-code-secret', [AuthController::class, 'verifyCodeSecret']);
+    Route::post('refresh', [AuthController::class, 'refresh']);
 });
 
 // Authenticated routes - MVP Orange Money
@@ -34,19 +35,21 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
     });
 
-    // Comptes bancaires (2 endpoints)
-    Route::prefix('comptes')->group(function () {
-        Route::get('balance', [CompteController::class, 'balance']);
-        Route::get('{numero}', [CompteController::class, 'checkAccount']);
+    // Dashboard client
+    Route::prefix('client')->group(function () {
+        Route::get('dashboard', [AuthController::class, 'dashboard']);
     });
 
-    // Transactions financières (5 endpoints)
+    // Comptes bancaires (1 endpoint)
+    Route::prefix('comptes')->group(function () {
+        Route::get('{numcompte}/balance', [CompteController::class, 'balance']);
+    });
+
+    // Transactions financières (3 endpoints)
     Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
         Route::post('transfer', [TransactionController::class, 'transfer']);
         Route::post('payment', [TransactionController::class, 'payment']);
-        Route::post('verify-code', [TransactionController::class, 'verifyCode']);
-        Route::get('history', [TransactionController::class, 'history']);
-        Route::get('{id}', [TransactionController::class, 'show']);
+        Route::get('{numerocompte}/history', [TransactionController::class, 'history']);
     });
 
 });
