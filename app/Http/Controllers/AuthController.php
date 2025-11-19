@@ -24,11 +24,11 @@ use Illuminate\Support\Str;
  * @OA\Info(
  *     title="Orange Money API",
  *     version="1.0.0",
- *     description="API for Orange Money payment system"
+ *     description="API for Orange Money payment system - Version 1"
  * )
  * @OA\Server(
- *     url="/api",
- *     description="API server"
+ *     url="/api/v1",
+ *     description="API V1 server"
  * )
  * @OA\SecurityScheme(
  *     securityScheme="passport",
