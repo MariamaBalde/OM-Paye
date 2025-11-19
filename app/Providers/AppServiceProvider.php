@@ -31,7 +31,14 @@ class AppServiceProvider extends ServiceProvider
 
         // Générer la documentation Swagger en production si elle n'existe pas
         if ($this->app->environment('production')) {
-            $docsPath = storage_path('api-docs/api-docs.json');
+            $docsDir = storage_path('api-docs');
+            $docsPath = $docsDir . '/api-docs.json';
+
+            // Créer le répertoire s'il n'existe pas
+            if (!is_dir($docsDir)) {
+                mkdir($docsDir, 0755, true);
+            }
+
             if (!file_exists($docsPath)) {
                 try {
                     Artisan::call('l5-swagger:generate');
