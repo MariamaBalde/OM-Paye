@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TransferRequest;
 use App\Http\Requests\PaymentRequest;
-use App\Http\Requests\VerifyCodeRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
+use App\Models\Compte;
 use App\Services\TransactionService;
 use App\Repositories\TransactionRepository;
 use App\Traits\ApiResponseTrait;
@@ -54,9 +54,8 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/transfer",
-     *     summary="Initiate money transfer",
-     *     description="Initiate a money transfer to another account",
+     *     path="/transactions/transfert",
+     *     description="Processus transfert d'argent a un autre compte",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\RequestBody(
@@ -70,13 +69,11 @@ class TransactionController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Transfer initiated successfully",
+     *         description="Transfer processed successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Transfert initié. Veuillez saisir le code de vérification."),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="transaction_id", type="integer", example=123)
-     *             )
+     *             @OA\Property(property="message", type="string", example="Transfert effectué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
      *         )
      *     ),
      *     @OA\Response(response=400, description="Bad request"),
@@ -87,19 +84,19 @@ class TransactionController extends Controller
     public function transfer(TransferRequest $request): JsonResponse
     {
         // Vérification des autorisations avec Gate
-        if (!Gate::allows('transfer-money')) {
-            return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des transferts.', 403);
-        }
+        // if (!Gate::allows('transfer-money')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des transferts.', 403);
+        // }
 
         try {
-            $transaction = $this->transactionService->initiateTransfer(
+            $transaction = $this->transactionService->processTransfer(
                 $request->validated(),
                 auth()->id()
             );
 
             return $this->successResponse(
-                ['transaction_id' => $transaction->id],
-                'Transfert initié. Veuillez saisir le code de vérification.'
+                new TransactionResource($transaction->load(['emetteur.user', 'destinataire.user'])),
+                'Transfert effectué avec succès'
             );
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
@@ -108,29 +105,26 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/payment",
-     *     summary="Initiate merchant payment",
-     *     description="Initiate a payment to a merchant",
+     *     path="/transactions/paiement",
+     *     description="Processus paiement pour un marchand",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"marchand_id","montant"},
-     *             @OA\Property(property="marchand_id", type="integer", example=1),
+     *             required={"code_marchand","montant"},
+     *             @OA\Property(property="code_marchand", type="string", example="MARCHAND001"),
      *             @OA\Property(property="montant", type="number", format="float", example=2500.00),
      *             @OA\Property(property="description", type="string", example="Paiement pour services")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Payment initiated successfully",
+     *         description="Payment processed successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Paiement initié. Veuillez saisir le code de vérification."),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="transaction_id", type="integer", example=124)
-     *             )
+     *             @OA\Property(property="message", type="string", example="Paiement effectué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
      *         )
      *     ),
      *     @OA\Response(response=400, description="Bad request"),
@@ -141,19 +135,19 @@ class TransactionController extends Controller
     public function payment(PaymentRequest $request): JsonResponse
     {
         // Vérification des autorisations avec Gate
-        if (!Gate::allows('pay-merchant')) {
-            return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des paiements.', 403);
-        }
+        // if (!Gate::allows('pay-merchant')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des paiements.', 403);
+        // }
 
         try {
-            $transaction = $this->transactionService->initiatePayment(
+            $transaction = $this->transactionService->processPayment(
                 $request->validated(),
                 auth()->id()
             );
 
             return $this->successResponse(
-                ['transaction_id' => $transaction->id],
-                'Paiement initié. Veuillez saisir le code de vérification.'
+                new TransactionResource($transaction->load(['emetteur.user', 'marchand'])),
+                'Paiement effectué avec succès'
             );
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
@@ -162,44 +156,53 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/verify-code",
-     *     summary="Verify and complete transaction",
-     *     description="Verify transaction with code and complete the transaction",
+     *     path="/transactions/depot",
+     *     description="Processus de dépôt à l'account",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"transaction_id","code"},
-     *             @OA\Property(property="transaction_id", type="integer", example=123),
-     *             @OA\Property(property="code", type="string", example="123456")
+     *             required={"montant"},
+     *             @OA\Property(property="montant", type="number", format="float", example=50000.00),
+     *             @OA\Property(property="description", type="string", example="Dépôt initial")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="Transaction completed successfully",
+     *         description="Deposit processed successfully",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Transaction validée avec succès"),
+     *             @OA\Property(property="message", type="string", example="Dépôt effectué avec succès"),
      *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
      *         )
      *     ),
      *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=403, description="Forbidden"),
      *     @OA\Response(response=401, description="Unauthorized")
      * )
      */
-    public function verifyCode(VerifyCodeRequest $request): JsonResponse
+    public function deposit(Request $request): JsonResponse
     {
+        $request->validate([
+            'montant' => 'required|numeric|min:100|max:1000000',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        // Vérification des autorisations
+        // if (!Gate::allows('deposit-money')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des dépôts.', 403);
+        // }
+
         try {
-            $transaction = $this->transactionService->verifyAndCompleteTransaction(
-                $request->transaction_id,
-                $request->code,
+            $transaction = $this->transactionService->processDeposit(
+                $request->all(),
                 auth()->id()
             );
 
             return $this->successResponse(
-                new TransactionResource($transaction->load(['emetteur', 'destinataire', 'marchand'])),
-                'Transaction validée avec succès'
+                new TransactionResource($transaction->load(['emetteur.user'])),
+                'Dépôt effectué avec succès'
             );
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 400);
@@ -207,12 +210,73 @@ class TransactionController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/transactions/history",
-     *     summary="Get transaction history",
-     *     description="Get transaction history with US 2.0 compliance. Admin sees all transactions, client sees only their own.",
+     * @OA\Post(
+     *     path="/transactions/retrait",
+     *     description="Processus de retrait du compte",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"montant"},
+     *             @OA\Property(property="montant", type="number", format="float", example=20000.00),
+     *             @OA\Property(property="description", type="string", example="Retrait pour achat")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Withdrawal processed successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Retrait effectué avec succès"),
+     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Bad request"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=401, description="Unauthorized")
+     * )
+     */
+    public function withdrawal(Request $request): JsonResponse
+    {
+        $request->validate([
+            'montant' => 'required|numeric|min:100|max:1000000',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $transaction = $this->transactionService->processWithdrawal(
+                $request->all(),
+                auth()->id()
+            );
+
+            return $this->successResponse(
+                new TransactionResource($transaction->load(['emetteur.user'])),
+                'Retrait effectué avec succès'
+            );
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
+
+
+
+
+  
+
+    /**
+     * @OA\Get(
+     *     path="/transactions/{numero_compte}/history",
+     *     description="Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\Parameter(
+     *         name="numero_compte",
+     *         in="path",
+     *         description="Account number",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
      *     @OA\Parameter(
      *         name="per_page",
      *         in="query",
@@ -286,27 +350,33 @@ class TransactionController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=403, description="Forbidden")
+     *     @OA\Response(response=403, description="Access denied to this account"),
+     *     @OA\Response(response=404, description="Account not found")
      * )
      */
-    public function history(Request $request): JsonResponse
+    public function index(string $numero_compte, Request $request): JsonResponse
     {
         $user = auth()->user();
+
+        // Trouver le compte par numéro
+        $compte = Compte::where('numero_compte', $numero_compte)->first();
+
+        if (!$compte) {
+            return $this->notFoundResponse('Compte non trouvé');
+        }
+
+        // Vérifier que l'utilisateur a accès à ce compte
+        if ($compte->user_id !== $user->id) {
+            return $this->errorResponse('Accès non autorisé à ce compte', 403);
+        }
+
         $query = Transaction::with(['emetteur.user', 'destinataire.user', 'marchand']);
 
-        // Appliquer les filtres selon le rôle
-        if ($user->hasRole('client')) {
-            // Client ne voit que ses transactions
-            $query->pourUtilisateur($user->id);
-        } elseif ($user->hasRole('admin')) {
-            // Admin peut voir toutes les transactions
-            // Pas de filtre supplémentaire
-        } elseif ($user->hasRole('marchand')) {
-            // Marchand voit les paiements reçus
-            $query->where('marchand_id', $user->marchand?->id);
-        } else {
-            throw new UnauthorizedException('Rôle non autorisé pour consulter l\'historique');
-        }
+        // Filtrer uniquement les transactions de ce compte (émises ou reçues)
+        $query->where(function ($q) use ($compte) {
+            $q->where('compte_emetteur_id', $compte->id)
+              ->orWhere('compte_destinataire_id', $compte->id);
+        });
 
         // Appliquer les filtres de requête
         $this->applyTransactionFilters($query, $request);
@@ -319,100 +389,13 @@ class TransactionController extends Controller
         $transactions = $query->paginate($perPage);
 
         return $this->successResponse(
-            TransactionResource::collection($transactions),
+            \App\Http\Resources\TransactionResource::collection($transactions),
             'Historique des transactions récupéré avec succès'
         );
     }
 
     /**
-     * @OA\Get(
-     *     path="/transactions/{id}",
-     *     summary="Get transaction details",
-     *     description="Get detailed information about a specific transaction",
-     *     tags={"Transactions"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="Transaction ID",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Transaction details retrieved successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Transaction récupérée"),
-     *             @OA\Property(property="data", ref="#/components/schemas/Transaction")
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=403, description="Forbidden"),
-     *     @OA\Response(response=404, description="Transaction not found")
-     * )
-     */
-    public function show(int $id): JsonResponse
-    {
-        $user = auth()->user();
-        $transaction = $this->transactionRepository->find($id);
-
-        if (!$transaction) {
-            return $this->notFoundResponse('Transaction non trouvée');
-        }
-
-        // Vérification des autorisations via Policy
-        $this->authorize('view', $transaction);
-
-        return $this->successResponse(
-            new \App\Http\Resources\TransactionResource($transaction->load(['emetteur.user', 'destinataire.user', 'marchand'])),
-            'Transaction récupérée'
-        );
-    }
-
-    /**
-     * @OA\Hidden
-     */
-    public function search(): JsonResponse
-    {
-        $criteria = request()->only([
-            'montant_min', 'montant_max', 'date_debut', 'date_fin',
-            'type', 'status', 'per_page'
-        ]);
-
-        $transactions = $this->transactionRepository->search($criteria);
-
-        return $this->paginatedResponse($transactions, 'Résultats de recherche');
-    }
-
-    /**
-     * @OA\Hidden
-     */
-    public function statistics(): JsonResponse
-    {
-        $user = auth()->user();
-        $filters = request()->only(['periode', 'type', 'status']);
-
-        // Pour les clients, statistiques personnelles
-        if ($user->hasRole('client')) {
-            $filters['user_id'] = $user->id;
-        }
-        // Pour les admins, statistiques globales
-        elseif ($user->hasRole('admin')) {
-            // Pas de filtre user_id pour les admins
-        }
-        // Pour les marchands, statistiques de leurs transactions
-        elseif ($user->hasRole('marchand')) {
-            $filters['marchand_id'] = $user->marchand?->id;
-        }
-
-        $stats = $this->transactionRepository->getStatistics($filters);
-
-        return $this->successResponse($stats, 'Statistiques récupérées');
-    }
-
-    /**
-     * Appliquer les filtres de requête aux transactions
+     * Appliquer les filtres de requête
      */
     private function applyTransactionFilters($query, Request $request)
     {
@@ -426,45 +409,74 @@ class TransactionController extends Controller
             $query->where('statut', $request->status);
         }
 
-        // Filtre par montant
+        // Filtre par montant minimum
         if ($request->has('montant_min') && is_numeric($request->montant_min)) {
             $query->where('montant', '>=', $request->montant_min);
         }
 
+        // Filtre par montant maximum
         if ($request->has('montant_max') && is_numeric($request->montant_max)) {
             $query->where('montant', '<=', $request->montant_max);
         }
 
         // Filtre par période
-        if ($request->has('periode') && in_array($request->periode, ['today', 'week', 'month', 'year'])) {
-            $query->periode($request->periode);
-        }
-
-        // Filtre par destinataire
-        if ($request->has('destinataire') && !empty($request->destinataire)) {
-            $query->where('destinataire_numero', 'like', "%{$request->destinataire}%")
-                  ->orWhere('destinataire_nom', 'like', "%{$request->destinataire}%");
+        if ($request->has('periode')) {
+            switch ($request->periode) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+                    break;
+                case 'year':
+                    $query->whereYear('created_at', now()->year);
+                    break;
+            }
         }
 
         // Recherche générale
         if ($request->has('search') && !empty($request->search)) {
-            $query->rechercher($request->search);
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('emetteur.user', function ($userQuery) use ($search) {
+                      $userQuery->where('nom', 'like', "%{$search}%")
+                                ->orWhere('prenom', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('destinataire.user', function ($userQuery) use ($search) {
+                      $userQuery->where('nom', 'like', "%{$search}%")
+                                ->orWhere('prenom', 'like', "%{$search}%");
+                  });
+            });
         }
     }
 
     /**
-     * Appliquer le tri aux transactions
+     * Appliquer le tri
      */
     private function applyTransactionSorting($query, Request $request)
     {
         $sortBy = $request->get('sort', 'created_at');
         $order = strtolower($request->get('order', 'desc'));
 
+        // Valider les colonnes de tri autorisées
+        $allowedSorts = ['created_at', 'montant', 'type', 'statut'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+        }
+
         // Valider l'ordre
         if (!in_array($order, ['asc', 'desc'])) {
             $order = 'desc';
         }
 
-        $query->trierPar($sortBy, $order);
+        $query->orderBy($sortBy, $order);
     }
+    
+
+   
 }

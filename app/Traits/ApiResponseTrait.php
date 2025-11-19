@@ -44,7 +44,7 @@ trait ApiResponseTrait
             if ($data->currentPage() > 1) {
                 $response['links']['previous'] = $data->url($data->currentPage() - 1);
             }
-        } else {
+        } elseif ($data !== null) {
             $response['data'] = $data;
         }
 

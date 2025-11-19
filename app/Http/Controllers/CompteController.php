@@ -78,11 +78,18 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/comptes/balance",
-     *     summary="Get account balance",
-     *     description="Get the balance of the user's primary account",
+     *     path="/comptes/{numcompte}/balance",
+     *     summary="Get account balance by account number",
+     *     description="Get the balance of a specific account by its account number",
      *     tags={"Comptes"},
      *     security={{"passport":{}}},
+     *     @OA\Parameter(
+     *         name="numcompte",
+     *         in="path",
+     *         description="Account number",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Balance retrieved successfully",
@@ -91,7 +98,6 @@ class CompteController extends Controller
      *             @OA\Property(property="message", type="string", example="Solde récupéré avec succès"),
      *             @OA\Property(property="data", type="object",
      *                 @OA\Property(property="solde", type="number", format="float", example=1500.50),
-     *                 @OA\Property(property="solde_formate", type="string", example="1 500,50 FCFA"),
      *                 @OA\Property(property="numero_compte", type="string", example="OM123456789"),
      *                 @OA\Property(property="plafond_journalier", type="number", format="float", example=50000.00),
      *                 @OA\Property(property="statut", type="string", example="actif"),
@@ -100,20 +106,28 @@ class CompteController extends Controller
      *         )
      *     ),
      *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Access denied to this account"),
      *     @OA\Response(response=404, description="Account not found")
      * )
      */
-    public function balance(): JsonResponse
+    public function balance(string $numcompte): JsonResponse
     {
-        $compte = auth()->user()->compte;
+        $user = auth()->user();
+
+        // Trouver le compte par numéro
+        $compte = Compte::where('numero_compte', $numcompte)->first();
 
         if (!$compte) {
-            throw new CompteNotFoundException();
+            return $this->notFoundResponse('Compte non trouvé');
+        }
+
+        // Vérifier que l'utilisateur a accès à ce compte
+        if ($compte->user_id !== $user->id) {
+            return $this->errorResponse('Accès non autorisé à ce compte', 403);
         }
 
         return $this->successResponse([
             'solde' => (float) $compte->solde,
-            'solde_formate' => $this->compteService->getFormattedBalance($compte),
             'numero_compte' => $compte->numero_compte,
             'plafond_journalier' => (float) $compte->plafond_journalier,
             'statut' => $compte->statut,
@@ -121,52 +135,6 @@ class CompteController extends Controller
         ], 'Solde récupéré avec succès');
     }
 
-    /**
-     * @OA\Get(
-     *     path="/comptes/{numero}",
-     *     summary="Check account existence",
-     *     description="Check if an account exists by account number (limited info for security)",
-     *     tags={"Comptes"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="numero",
-     *         in="path",
-     *         description="Account number",
-     *         required=true,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Account found successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Compte trouvé"),
-     *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="numero_compte", type="string", example="771234567"),
-     *                 @OA\Property(property="destinataire", type="string", example="Fatou Sall"),
-     *                 @OA\Property(property="statut", type="string", example="actif")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Account not found")
-     * )
-     */
-    public function checkAccount(string $numero): JsonResponse
-    {
-        $compte = Compte::where('numero_compte', $numero)->first();
-
-        if (!$compte) {
-            return $this->notFoundResponse('Compte non trouvé');
-        }
-
-        // Retourner uniquement les informations limitées pour sécurité
-        return $this->successResponse([
-            'numero_compte' => $compte->numero_compte,
-            'destinataire' => $compte->user->nom . ' ' . $compte->user->prenom,
-            'statut' => $compte->statut
-        ], 'Compte trouvé');
-    }
 
     /**
      * @OA\Hidden

@@ -18,17 +18,6 @@ class ClientSeeder extends Seeder
         foreach ($comptes as $compte) {
             \App\Models\Client::create([
                 'compte_id' => $compte->id,
-                'type_client' => rand(0, 1) ? 'particulier' : 'professionnel',
-                'date_naissance' => fake()->date('Y-m-d', '-18 years'),
-                'adresse' => fake()->streetAddress(),
-                'ville' => 'Dakar',
-                'pays' => 'Sénégal',
-                'piece_identite_type' => 'CNI',
-                'piece_identite_numero' => strtoupper(fake()->bothify('##########')),
-                'contacts_favoris' => json_encode([
-                    fake()->phoneNumber(),
-                    fake()->phoneNumber(),
-                ]),
             ]);
         }
     }

@@ -98,4 +98,12 @@ class Compte extends Model
             $q->where('telephone', $telephone);
         });
     }
+
+    // Accesseur pour calculer le solde comme somme des dépôts - somme des retraits
+    public function getSoldeAttribute($value)
+    {
+        $deposits = $this->transactionsEmises()->where('type', 'depot')->where('statut', 'validee')->sum('montant');
+        $withdrawals = $this->transactionsEmises()->where('type', 'retrait')->where('statut', 'validee')->sum('montant');
+        return $deposits - $withdrawals;
+    }
 }

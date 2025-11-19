@@ -43,6 +43,8 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'manage-own-account', 'label' => 'Gérer son compte', 'description' => 'Modifier ses paramètres personnels'],
             ['name' => 'transfer-money', 'label' => 'Transférer de l\'argent', 'description' => 'Effectuer des transferts'],
             ['name' => 'pay-merchant', 'label' => 'Payer un marchand', 'description' => 'Effectuer des paiements marchands'],
+            ['name' => 'deposit-money', 'label' => 'Déposer de l\'argent', 'description' => 'Effectuer des dépôts'],
+            ['name' => 'withdraw-money', 'label' => 'Retirer de l\'argent', 'description' => 'Effectuer des retraits'],
             ['name' => 'view-own-history', 'label' => 'Voir son historique', 'description' => 'Consulter ses transactions'],
             ['name' => 'manage-contacts', 'label' => 'Gérer les contacts', 'description' => 'Ajouter/modifier des contacts'],
 
@@ -74,6 +76,8 @@ class RolePermissionSeeder extends Seeder
             'manage-own-account',
             'transfer-money',
             'pay-merchant',
+            'deposit-money',
+            'withdraw-money',
             'view-own-history',
             'manage-contacts'
         ];

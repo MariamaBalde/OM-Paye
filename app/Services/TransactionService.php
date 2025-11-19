@@ -116,41 +116,191 @@ class TransactionService
     }
 
     /**
-     * Valide une transaction avec code de vérification
+     * Traite un transfert directement (sans vérification)
      */
-    public function verifyAndCompleteTransaction(int $transactionId, string $code, int $userId): Transaction
+    public function processTransfer(array $data, int $userId): Transaction
     {
-        $transaction = Transaction::findOrFail($transactionId);
+        $compteEmetteur = Compte::where('user_id', $userId)->first();
 
-        // Vérifier que la transaction appartient à l'utilisateur
-        if ($transaction->emetteur->user_id !== $userId) {
-            throw new \Exception('Transaction non autorisée');
+        if (!$compteEmetteur) {
+            throw new \Exception('Compte émetteur non trouvé');
         }
 
-        // Vérifier le code
-        $verificationCode = $transaction->verificationCode;
-        if (!$verificationCode || $verificationCode->code !== $code || $verificationCode->expire_at < now()) {
-            throw new \Exception('Code de vérification invalide ou expiré');
+        $compteDestinataire = Compte::whereHas('user', function($q) use ($data) {
+            $q->where('telephone', $data['destinataire_numero']);
+        })->first();
+
+        if (!$compteDestinataire) {
+            throw new \Exception('Compte destinataire non trouvé');
         }
 
-        DB::transaction(function () use ($transaction, $verificationCode) {
-            // Marquer le code comme vérifié
-            $verificationCode->update(['verifie' => true]);
+        if ($compteEmetteur->id === $compteDestinataire->id) {
+            throw new \Exception('Impossible de transférer vers son propre compte');
+        }
 
-            // Traiter la transaction
-            $compteEmetteur = $transaction->emetteur;
-            $compteEmetteur->decrement('solde', $transaction->montant_total);
+        $montant = $data['montant'];
+        $frais = $this->calculateTransferFees($montant);
+        $montantTotal = $montant + $frais;
 
-            if ($transaction->destinataire) {
-                $transaction->destinataire->increment('solde', $transaction->montant);
-            }
+        // Vérifier les limites journalières
+        if (!$this->isWithinDailyLimit($compteEmetteur, $montantTotal)) {
+            throw new \Exception('Limite journalière dépassée');
+        }
 
-            $transaction->update([
+        DB::transaction(function () use ($compteEmetteur, $compteDestinataire, $montant, $frais, $montantTotal, $data) {
+            // Créer et traiter la transaction
+            $transaction = Transaction::create([
+                'compte_emetteur_id' => $compteEmetteur->id,
+                'compte_destinataire_id' => $compteDestinataire->id,
+                'type' => 'transfert',
+                'montant' => $montant,
+                'frais' => $frais,
+                'montant_total' => $montantTotal,
+                'destinataire_numero' => $data['destinataire_numero'],
+                'destinataire_nom' => $compteDestinataire->user->nom . ' ' . $compteDestinataire->user->prenom,
                 'statut' => 'validee',
-                'code_verifie' => true
+                'code_verifie' => true,
+                'description' => $data['description'] ?? 'Transfert',
             ]);
+
+            // Mettre à jour les soldes
+            $compteEmetteur->decrement('solde', $montantTotal);
+            $compteDestinataire->increment('solde', $montant);
         });
 
-        return $transaction->fresh();
+        return Transaction::latest()->first();
     }
+
+    /**
+     * Traite un paiement directement (sans vérification)
+     */
+    public function processPayment(array $data, int $userId): Transaction
+    {
+        $compteEmetteur = Compte::where('user_id', $userId)->first();
+
+        if (!$compteEmetteur) {
+            throw new \Exception('Compte émetteur non trouvé');
+        }
+
+        $marchand = \App\Models\Marchand::where('code_marchand', $data['code_marchand'])->first();
+
+        if (!$marchand) {
+            throw new \Exception('Marchand non trouvé');
+        }
+
+        $montant = $data['montant'];
+        $frais = $this->calculatePaymentFees($montant);
+        $montantTotal = $montant + $frais;
+
+        DB::transaction(function () use ($compteEmetteur, $marchand, $montant, $frais, $montantTotal, $data) {
+            // Créer et traiter la transaction
+            $transaction = Transaction::create([
+                'compte_emetteur_id' => $compteEmetteur->id,
+                'marchand_id' => $marchand->id,
+                'type' => 'paiement',
+                'montant' => $montant,
+                'frais' => $frais,
+                'montant_total' => $montantTotal,
+                'statut' => 'validee',
+                'code_verifie' => true,
+                'description' => $data['description'] ?? 'Paiement marchand',
+            ]);
+
+            // Mettre à jour le solde
+            $compteEmetteur->decrement('solde', $montantTotal);
+        });
+
+        return Transaction::latest()->first();
+    }
+
+    /**
+     * Traite un dépôt directement
+     */
+    public function processDeposit(array $data, int $userId): Transaction
+    {
+        $compte = Compte::where('user_id', $userId)->first();
+
+        if (!$compte) {
+            throw new \Exception('Compte non trouvé');
+        }
+
+        $montant = $data['montant'];
+
+        DB::transaction(function () use ($compte, $montant, $data) {
+            // Créer et traiter la transaction
+            $transaction = Transaction::create([
+                'compte_emetteur_id' => $compte->id,
+                'type' => 'depot',
+                'montant' => $montant,
+                'frais' => 0,
+                'montant_total' => $montant,
+                'statut' => 'validee',
+                'code_verifie' => true,
+                'description' => $data['description'] ?? 'Dépôt',
+            ]);
+
+            // Mettre à jour le solde du compte
+            $compte->increment('solde', $montant);
+        });
+
+        return Transaction::latest()->first();
+    }
+
+    /**
+     * Traite un retrait directement
+     */
+    public function processWithdrawal(array $data, int $userId): Transaction
+    {
+        $compte = Compte::where('user_id', $userId)->first();
+
+        if (!$compte) {
+            throw new \Exception('Compte non trouvé');
+        }
+
+        $montant = $data['montant'];
+
+        // Vérifier le solde calculé
+        if ($compte->solde < $montant) {
+            throw new \Exception('Solde insuffisant');
+        }
+
+        // Vérifier les limites journalières
+        if (!$this->isWithinDailyLimit($compte, $montant)) {
+            throw new \Exception('Limite journalière dépassée');
+        }
+
+        DB::transaction(function () use ($compte, $montant, $data) {
+            // Créer et traiter la transaction
+            $transaction = Transaction::create([
+                'compte_emetteur_id' => $compte->id,
+                'type' => 'retrait',
+                'montant' => $montant,
+                'frais' => 0,
+                'montant_total' => $montant,
+                'statut' => 'validee',
+                'code_verifie' => true,
+                'description' => $data['description'] ?? 'Retrait',
+            ]);
+
+            // Mettre à jour le solde du compte
+            $compte->decrement('solde', $montant);
+        });
+
+        return Transaction::latest()->first();
+    }
+
+    /**
+     * Vérifie si le compte peut effectuer la transaction
+     */
+    private function isWithinDailyLimit(Compte $compte, float $montant): bool
+    {
+        // Calculer le total des transactions du jour
+        $totalToday = $compte->transactionsEmises()
+            ->whereDate('created_at', today())
+            ->where('statut', 'validee')
+            ->sum('montant_total');
+
+        return ($totalToday + $montant) <= $compte->plafond_journalier;
+    }
+
 }

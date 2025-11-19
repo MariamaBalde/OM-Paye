@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Events\TransactionCompleted;
-use App\Listeners\TransactionCompletedListener;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -20,9 +18,6 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
-        TransactionCompleted::class => [
-            TransactionCompletedListener::class,
-        ],
     ];
 
     /**
@@ -30,7 +25,8 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \App\Models\User::observe(\App\Observers\UserObserver::class);
+        \App\Models\Transaction::observe(\App\Observers\TransactionObserver::class);
     }
 
     /**
