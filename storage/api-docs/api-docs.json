@@ -262,14 +262,16 @@
                                                     "example": "Bearer"
                                                 },
                                                 "expires_in": {
+                                                    "description": "30 minutes en secondes",
                                                     "type": "integer",
-                                                    "example": 31536000
+                                                    "example": 1800
                                                 },
                                                 "access_token": {
                                                     "type": "string",
                                                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                                                 },
                                                 "refresh_token": {
+                                                    "description": "Expire dans 1 heure",
                                                     "type": "string",
                                                     "example": "refresh_token_string"
                                                 }
@@ -428,7 +430,27 @@
                                             "example": "Token rafraîchi avec succès"
                                         },
                                         "data": {
-                                            "$ref": "#/components/schemas/AuthToken"
+                                            "properties": {
+                                                "token_type": {
+                                                    "type": "string",
+                                                    "example": "Bearer"
+                                                },
+                                                "expires_in": {
+                                                    "description": "30 minutes en secondes",
+                                                    "type": "integer",
+                                                    "example": 1800
+                                                },
+                                                "access_token": {
+                                                    "type": "string",
+                                                    "example": "nouveau_token..."
+                                                },
+                                                "refresh_token": {
+                                                    "description": "Expire dans 1 heure",
+                                                    "type": "string",
+                                                    "example": "nouveau_refresh_token"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -965,10 +987,10 @@
                     "Transactions"
                 ],
                 "description": "Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
-                "operationId": "a13721cbc14a420611847fc377093f92",
+                "operationId": "1fa37da79a38e94c13d41d2909a36438",
                 "parameters": [
                     {
-                        "name": "numerocompte",
+                        "name": "numero_compte",
                         "in": "path",
                         "description": "Account number",
                         "required": true,
@@ -1208,14 +1230,16 @@
                         "example": "Bearer"
                     },
                     "expires_in": {
+                        "description": "30 minutes en secondes",
                         "type": "integer",
-                        "example": 31536000
+                        "example": 1800
                     },
                     "access_token": {
                         "type": "string",
                         "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                     },
                     "refresh_token": {
+                        "description": "Expire dans 1 heure",
                         "type": "string",
                         "example": "refresh_token_string"
                     }

@@ -61,9 +61,9 @@ use Illuminate\Support\Str;
  *     schema="AuthToken",
  *     type="object",
  *     @OA\Property(property="token_type", type="string", example="Bearer"),
- *     @OA\Property(property="expires_in", type="integer", example=31536000),
+ *     @OA\Property(property="expires_in", type="integer", example=1800, description="30 minutes en secondes"),
  *     @OA\Property(property="access_token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
- *     @OA\Property(property="refresh_token", type="string", example="refresh_token_string")
+ *     @OA\Property(property="refresh_token", type="string", example="refresh_token_string", description="Expire dans 1 heure")
  * )
  * @OA\Schema(
  *     schema="SmsSession",
@@ -297,9 +297,9 @@ class AuthController extends Controller
      *             @OA\Property(property="message", type="string", example="Connexion réussie"),
      *             @OA\Property(property="data", type="object",
      *                 @OA\Property(property="token_type", type="string", example="Bearer"),
-     *                 @OA\Property(property="expires_in", type="integer", example=31536000),
+     *                 @OA\Property(property="expires_in", type="integer", example=1800, description="30 minutes en secondes"),
      *                 @OA\Property(property="access_token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
-     *                 @OA\Property(property="refresh_token", type="string", example="refresh_token_string")
+     *                 @OA\Property(property="refresh_token", type="string", example="refresh_token_string", description="Expire dans 1 heure")
      *             )
      *         )
      *     ),
@@ -364,20 +364,20 @@ class AuthController extends Controller
         // Créer un token d'accès personnel (qui fonctionne comme OAuth2 token)
         $tokenResult = $user->createToken('OrangeMoney');
 
-        // Créer un refresh token associé
+        // Créer un refresh token associé (1 heure)
         $refreshTokenId = Str::random(40);
         $refreshToken = new RefreshToken([
             'id' => $refreshTokenId,
             'access_token_id' => $tokenResult->token->id,
             'revoked' => false,
-            'expires_at' => Carbon::now()->addDays(365),
+            'expires_at' => Carbon::now()->addHour(),
         ]);
         $refreshToken->save();
 
         return $this->successResponse(
             [
                 'token_type' => 'Bearer',
-                'expires_in' => 31536000, // 1 an en secondes
+                'expires_in' => 1800, // 30 minutes en secondes
                 'access_token' => $tokenResult->accessToken,
                 'refresh_token' => $refreshTokenId,
             ],
@@ -444,7 +444,12 @@ class AuthController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Token rafraîchi avec succès"),
-     *             @OA\Property(property="data", ref="#/components/schemas/AuthToken")
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="token_type", type="string", example="Bearer"),
+     *                 @OA\Property(property="expires_in", type="integer", example=1800, description="30 minutes en secondes"),
+     *                 @OA\Property(property="access_token", type="string", example="nouveau_token..."),
+     *                 @OA\Property(property="refresh_token", type="string", example="nouveau_refresh_token", description="Expire dans 1 heure")
+     *             )
      *         )
      *     ),
      *     @OA\Response(response=400, description="Refresh token required"),
@@ -484,20 +489,20 @@ class AuthController extends Controller
         // Créer un nouveau token d'accès personnel
         $newTokenResult = $user->createToken('OrangeMoney');
 
-        // Créer un nouveau refresh token
+        // Créer un nouveau refresh token (1 heure)
         $newRefreshTokenId = Str::random(40);
         $newRefreshToken = new RefreshToken([
             'id' => $newRefreshTokenId,
             'access_token_id' => $newTokenResult->token->id,
             'revoked' => false,
-            'expires_at' => Carbon::now()->addDays(365),
+            'expires_at' => Carbon::now()->addHour(),
         ]);
         $newRefreshToken->save();
 
         return $this->successResponse(
             [
                 'token_type' => 'Bearer',
-                'expires_in' => 31536000,
+                'expires_in' => 1800, // 30 minutes
                 'access_token' => $newTokenResult->accessToken,
                 'refresh_token' => $newRefreshTokenId,
             ],

@@ -84,9 +84,9 @@ class TransactionController extends Controller
     public function transfer(TransferRequest $request): JsonResponse
     {
         // Vérification des autorisations avec Gate
-        if (!Gate::allows('transfer-money')) {
-            return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des transferts.', 403);
-        }
+        // if (!Gate::allows('transfer-money')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des transferts.', 403);
+        // }
 
         try {
             $transaction = $this->transactionService->processTransfer(
@@ -135,9 +135,9 @@ class TransactionController extends Controller
     public function payment(PaymentRequest $request): JsonResponse
     {
         // Vérification des autorisations avec Gate
-        if (!Gate::allows('pay-merchant')) {
-            return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des paiements.', 403);
-        }
+        // if (!Gate::allows('pay-merchant')) {
+        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des paiements.', 403);
+        // }
 
         try {
             $transaction = $this->transactionService->processPayment(
@@ -184,6 +184,11 @@ class TransactionController extends Controller
      */
     public function deposit(Request $request): JsonResponse
     {
+        $request->validate([
+            'montant' => 'required|numeric|min:100|max:1000000',
+            'description' => 'nullable|string|max:255',
+        ]);
+
         // Vérification des autorisations
         // if (!Gate::allows('deposit-money')) {
         //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des dépôts.', 403);
@@ -234,7 +239,10 @@ class TransactionController extends Controller
      */
     public function withdrawal(Request $request): JsonResponse
     {
-        
+        $request->validate([
+            'montant' => 'required|numeric|min:100|max:1000000',
+            'description' => 'nullable|string|max:255',
+        ]);
 
         try {
             $transaction = $this->transactionService->processWithdrawal(
@@ -252,6 +260,10 @@ class TransactionController extends Controller
     }
 
 
+
+
+  
+
     /**
      * @OA\Get(
      *     path="/transactions/{numero_compte}/history",
@@ -259,7 +271,7 @@ class TransactionController extends Controller
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
      *     @OA\Parameter(
-     *         name="numerocompte",
+     *         name="numero_compte",
      *         in="path",
      *         description="Account number",
      *         required=true,
@@ -342,12 +354,12 @@ class TransactionController extends Controller
      *     @OA\Response(response=404, description="Account not found")
      * )
      */
-    public function history(string $numerocompte, Request $request): JsonResponse
+    public function index(string $numero_compte, Request $request): JsonResponse
     {
         $user = auth()->user();
 
         // Trouver le compte par numéro
-        $compte = Compte::where('numero_compte', $numerocompte)->first();
+        $compte = Compte::where('numero_compte', $numero_compte)->first();
 
         if (!$compte) {
             return $this->notFoundResponse('Compte non trouvé');
@@ -377,14 +389,93 @@ class TransactionController extends Controller
         $transactions = $query->paginate($perPage);
 
         return $this->successResponse(
-            TransactionResource::collection($transactions),
+            \App\Http\Resources\TransactionResource::collection($transactions),
             'Historique des transactions récupéré avec succès'
         );
     }
 
+    /**
+     * Appliquer les filtres de requête
+     */
+    private function applyTransactionFilters($query, Request $request)
+    {
+        // Filtre par type
+        if ($request->has('type') && in_array($request->type, ['transfert', 'paiement', 'depot', 'retrait', 'achat_credit'])) {
+            $query->where('type', $request->type);
+        }
 
-  
+        // Filtre par statut
+        if ($request->has('status') && in_array($request->status, ['en_attente', 'validee', 'echouee', 'annulee'])) {
+            $query->where('statut', $request->status);
+        }
 
+        // Filtre par montant minimum
+        if ($request->has('montant_min') && is_numeric($request->montant_min)) {
+            $query->where('montant', '>=', $request->montant_min);
+        }
+
+        // Filtre par montant maximum
+        if ($request->has('montant_max') && is_numeric($request->montant_max)) {
+            $query->where('montant', '<=', $request->montant_max);
+        }
+
+        // Filtre par période
+        if ($request->has('periode')) {
+            switch ($request->periode) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                    break;
+                case 'month':
+                    $query->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year);
+                    break;
+                case 'year':
+                    $query->whereYear('created_at', now()->year);
+                    break;
+            }
+        }
+
+        // Recherche générale
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('emetteur.user', function ($userQuery) use ($search) {
+                      $userQuery->where('nom', 'like', "%{$search}%")
+                                ->orWhere('prenom', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('destinataire.user', function ($userQuery) use ($search) {
+                      $userQuery->where('nom', 'like', "%{$search}%")
+                                ->orWhere('prenom', 'like', "%{$search}%");
+                  });
+            });
+        }
+    }
+
+    /**
+     * Appliquer le tri
+     */
+    private function applyTransactionSorting($query, Request $request)
+    {
+        $sortBy = $request->get('sort', 'created_at');
+        $order = strtolower($request->get('order', 'desc'));
+
+        // Valider les colonnes de tri autorisées
+        $allowedSorts = ['created_at', 'montant', 'type', 'statut'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+        }
+
+        // Valider l'ordre
+        if (!in_array($order, ['asc', 'desc'])) {
+            $order = 'desc';
+        }
+
+        $query->orderBy($sortBy, $order);
+    }
     
 
    

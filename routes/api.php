@@ -57,11 +57,11 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Transactions financières (5 endpoints)
     Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
-        Route::post('transfer', [TransactionController::class, 'transfer']);
-        Route::post('payment', [TransactionController::class, 'payment']);
-        Route::post('deposit', [TransactionController::class, 'deposit']);
-        Route::post('withdrawal', [TransactionController::class, 'withdrawal']);
-        Route::get('{numerocompte}/history', [TransactionController::class, 'history']);
+        Route::post('transfert', [TransactionController::class, 'transfer']);
+        Route::post('paiement', [TransactionController::class, 'payment']);
+        Route::post('depot', [TransactionController::class, 'deposit']);
+        Route::post('retrait', [TransactionController::class, 'withdrawal']);
+        Route::get('{numero_compte}/history', [TransactionController::class, 'index']);
     });
 
 });

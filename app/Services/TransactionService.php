@@ -162,6 +162,10 @@ class TransactionService
                 'code_verifie' => true,
                 'description' => $data['description'] ?? 'Transfert',
             ]);
+
+            // Mettre à jour les soldes
+            $compteEmetteur->decrement('solde', $montantTotal);
+            $compteDestinataire->increment('solde', $montant);
         });
 
         return Transaction::latest()->first();
@@ -201,6 +205,9 @@ class TransactionService
                 'code_verifie' => true,
                 'description' => $data['description'] ?? 'Paiement marchand',
             ]);
+
+            // Mettre à jour le solde
+            $compteEmetteur->decrement('solde', $montantTotal);
         });
 
         return Transaction::latest()->first();
@@ -231,6 +238,9 @@ class TransactionService
                 'code_verifie' => true,
                 'description' => $data['description'] ?? 'Dépôt',
             ]);
+
+            // Mettre à jour le solde du compte
+            $compte->increment('solde', $montant);
         });
 
         return Transaction::latest()->first();
@@ -271,6 +281,9 @@ class TransactionService
                 'code_verifie' => true,
                 'description' => $data['description'] ?? 'Retrait',
             ]);
+
+            // Mettre à jour le solde du compte
+            $compte->decrement('solde', $montant);
         });
 
         return Transaction::latest()->first();
