@@ -55,6 +55,10 @@ php artisan db:seed --force
 echo "Generating API documentation..."
 php artisan l5-swagger:generate
 
+# Ensure docs directory exists and is writable
+mkdir -p storage/api-docs
+chmod -R 755 storage/api-docs
+
 # Clear and cache config
 echo "Clearing and caching configuration..."
 php artisan config:clear
