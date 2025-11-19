@@ -27,8 +27,12 @@ use Illuminate\Support\Str;
  *     description="API for Orange Money payment system - Version 1"
  * )
  * @OA\Server(
+ *     url="https://om-paye.onrender.com/api/v1",
+ *     description="Production API V1 server"
+ * )
+ * @OA\Server(
  *     url="/api/v1",
- *     description="API V1 server"
+ *     description="Local API V1 server"
  * )
  * @OA\SecurityScheme(
  *     securityScheme="passport",

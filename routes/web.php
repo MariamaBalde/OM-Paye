@@ -16,3 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Redirect to API documentation
+Route::get('/api-docs', function () {
+    return redirect('/docs');
+});
