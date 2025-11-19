@@ -1,0 +1,742 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Orange Money API",
+    "description": "API for Orange Money payment system - Version 1",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://om-paye.onrender.com/api/v1",
+      "description": "Production API V1 server"
+    },
+    {
+      "url": "/api/v1",
+      "description": "Local API V1 server"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Inscription utilisateur Orange Money",
+        "description": "Créer un nouveau compte utilisateur avec numéro de téléphone et code secret",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["nom", "prenom", "telephone", "code_secret"],
+                "properties": {
+                  "nom": {"type": "string", "example": "Diallo"},
+                  "prenom": {"type": "string", "example": "Abdoulaye"},
+                  "telephone": {"description": "Numéro de téléphone 9 chiffres", "type": "string", "example": "774047668"},
+                  "code_secret": {"description": "Code secret 4 chiffres", "type": "string", "example": "1234"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Compte créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Compte créé avec succès"},
+                    "data": {"$ref": "#/components/schemas/User"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "422": {"description": "Données invalides"}
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Étape 1: Initiation de connexion OM Pay",
+        "description": "Saisir numéro de téléphone → SMS envoyé automatiquement → Retourne session_id pour tracker la session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["telephone"],
+                "properties": {
+                  "telephone": {"description": "Numéro de téléphone sans indicatif (+221)", "type": "string", "example": "782917770"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SMS envoyé avec succès - Prêt pour vérification SMS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "SMS envoyé"},
+                    "data": {"$ref": "#/components/schemas/SmsSession"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Numéro de téléphone invalide"},
+          "404": {"description": "Utilisateur non trouvé"}
+        }
+      }
+    },
+    "/auth/verify-code-secret": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Étape 2: Vérification du code secret - Connexion finale",
+        "description": "Après vérification SMS côté backend → Saisir code secret (4 chiffres) → Connexion complète",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["telephone", "code_secret", "session_id"],
+                "properties": {
+                  "telephone": {"description": "Numéro de téléphone utilisé à l'étape 1", "type": "string", "example": "782917770"},
+                  "code_secret": {"description": "Code secret Orange Money (4 chiffres)", "type": "string", "example": "1234"},
+                  "session_id": {"description": "Session ID retourné à l'étape 1", "type": "string", "example": "123"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connexion réussie - Accès au dashboard OM Pay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Connexion réussie"},
+                    "data": {
+                      "properties": {
+                        "token_type": {"type": "string", "example": "Bearer"},
+                        "expires_in": {"description": "30 minutes en secondes", "type": "integer", "example": 1800},
+                        "access_token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+                        "refresh_token": {"description": "Expire dans 1 heure", "type": "string", "example": "refresh_token_string"}
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Session expirée ou invalide"},
+          "401": {"description": "Code secret incorrect"},
+          "403": {"description": "Compte inactif"}
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User logout",
+        "description": "Logout the authenticated user",
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Déconnexion réussie"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh access token",
+        "description": "Use refresh token to get a new access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["refresh_token"],
+                "properties": {
+                  "refresh_token": {"type": "string", "example": "refresh_token_string"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Token rafraîchi avec succès"},
+                    "data": {
+                      "properties": {
+                        "token_type": {"type": "string", "example": "Bearer"},
+                        "expires_in": {"description": "30 minutes en secondes", "type": "integer", "example": 1800},
+                        "access_token": {"type": "string", "example": "nouveau_token..."},
+                        "refresh_token": {"description": "Expire dans 1 heure", "type": "string", "example": "nouveau_refresh_token"}
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Refresh token required"},
+          "401": {"description": "Invalid refresh token"}
+        }
+      }
+    },
+    "/auth/profile": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get user profile",
+        "description": "Get the authenticated user's profile information",
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Profil récupéré avec succès"},
+                    "data": {"$ref": "#/components/schemas/User"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/client/dashboard": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Get client dashboard data",
+        "description": "Get dashboard data including user info, account details, and recent transactions",
+        "responses": {
+          "200": {
+            "description": "Dashboard data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Données du dashboard récupérées avec succès"},
+                    "data": {
+                      "properties": {
+                        "user": {
+                          "properties": {
+                            "id": {"type": "integer", "example": 1},
+                            "nom": {"type": "string", "example": "Diallo"}
+                          },
+                          "type": "object"
+                        },
+                        "compte": {
+                          "properties": {
+                            "id": {"type": "integer", "example": 1},
+                            "numero": {"type": "string", "example": "OMCPT1234567890"},
+                            "solde": {"type": "number", "format": "float", "example": 1500.5},
+                            "qrCode": {"type": "string", "example": "QR_774047668"}
+                          },
+                          "type": "object"
+                        },
+                        "recentTransactions": {
+                          "type": "array",
+                          "items": {"$ref": "#/components/schemas/Transaction"}
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized"},
+          "404": {"description": "Account not found"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/comptes/{numcompte}/balance": {
+      "get": {
+        "tags": ["Comptes"],
+        "summary": "Get account balance by account number",
+        "description": "Get the balance of a specific account by its account number",
+        "parameters": [
+          {
+            "name": "numcompte",
+            "in": "path",
+            "description": "Account number",
+            "required": true,
+            "schema": {"type": "string"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Solde récupéré avec succès"},
+                    "data": {
+                      "properties": {
+                        "solde": {"type": "number", "format": "float", "example": 1500.5},
+                        "numero_compte": {"type": "string", "example": "OM123456789"},
+                        "plafond_journalier": {"type": "number", "format": "float", "example": 50000},
+                        "statut": {"type": "string", "example": "actif"},
+                        "devise": {"type": "string", "example": "FCFA"}
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized"},
+          "403": {"description": "Access denied to this account"},
+          "404": {"description": "Account not found"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/transactions/transfert": {
+      "post": {
+        "tags": ["Transactions"],
+        "description": "Processus transfert d'argent a un autre compte",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["destinataire_numero", "montant"],
+                "properties": {
+                  "destinataire_numero": {"type": "string", "example": "771234567"},
+                  "montant": {"type": "number", "format": "float", "example": 5000},
+                  "description": {"type": "string", "example": "Transfert pour achat"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Transfert effectué avec succès"},
+                    "data": {"$ref": "#/components/schemas/Transaction"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad request"},
+          "403": {"description": "Forbidden"},
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/transactions/paiement": {
+      "post": {
+        "tags": ["Transactions"],
+        "description": "Processus paiement pour un marchand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["code_marchand", "montant"],
+                "properties": {
+                  "code_marchand": {"type": "string", "example": "MARCHAND001"},
+                  "montant": {"type": "number", "format": "float", "example": 2500},
+                  "description": {"type": "string", "example": "Paiement pour services"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Paiement effectué avec succès"},
+                    "data": {"$ref": "#/components/schemas/Transaction"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad request"},
+          "403": {"description": "Forbidden"},
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/transactions/depot": {
+      "post": {
+        "tags": ["Transactions"],
+        "description": "Processus de dépôt à l'account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["montant"],
+                "properties": {
+                  "montant": {"type": "number", "format": "float", "example": 50000},
+                  "description": {"type": "string", "example": "Dépôt initial"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deposit processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Dépôt effectué avec succès"},
+                    "data": {"$ref": "#/components/schemas/Transaction"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad request"},
+          "403": {"description": "Forbidden"},
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/transactions/retrait": {
+      "post": {
+        "tags": ["Transactions"],
+        "description": "Processus de retrait du compte",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": ["montant"],
+                "properties": {
+                  "montant": {"type": "number", "format": "float", "example": 20000},
+                  "description": {"type": "string", "example": "Retrait pour achat"}
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Withdrawal processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Retrait effectué avec succès"},
+                    "data": {"$ref": "#/components/schemas/Transaction"}
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {"description": "Bad request"},
+          "403": {"description": "Forbidden"},
+          "401": {"description": "Unauthorized"}
+        },
+        "security": [{"passport": []}]
+      }
+    },
+    "/transactions/{numero_compte}/history": {
+      "get": {
+        "tags": ["Transactions"],
+        "description": "Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
+        "parameters": [
+          {
+            "name": "numero_compte",
+            "in": "path",
+            "description": "Account number",
+            "required": true,
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {"type": "integer", "default": 20, "maximum": 100}
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Transaction type filter",
+            "required": false,
+            "schema": {"type": "string", "enum": ["transfert", "paiement", "depot", "retrait", "achat_credit"]}
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Transaction status filter",
+            "required": false,
+            "schema": {"type": "string", "enum": ["en_attente", "validee", "echouee", "annulee"]}
+          },
+          {
+            "name": "montant_min",
+            "in": "query",
+            "description": "Minimum amount filter",
+            "required": false,
+            "schema": {"type": "number", "format": "float"}
+          },
+          {
+            "name": "montant_max",
+            "in": "query",
+            "description": "Maximum amount filter",
+            "required": false,
+            "schema": {"type": "number", "format": "float"}
+          },
+          {
+            "name": "periode",
+            "in": "query",
+            "description": "Period filter",
+            "required": false,
+            "schema": {"type": "string", "enum": ["today", "week", "month", "year"]}
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "General search",
+            "required": false,
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort field",
+            "required": false,
+            "schema": {"type": "string", "default": "created_at"}
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "description": "Sort order",
+            "required": false,
+            "schema": {"type": "string", "default": "desc", "enum": ["asc", "desc"]}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {"type": "boolean", "example": true},
+                    "message": {"type": "string", "example": "Historique des transactions récupéré avec succès"},
+                    "data": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Transaction"}
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {"description": "Unauthorized"},
+          "403": {"description": "Access denied to this account"},
+          "404": {"description": "Account not found"}
+        },
+        "security": [{"passport": []}]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "nom": {"type": "string", "example": "Diallo"},
+          "prenom": {"type": "string", "example": "Abdoulaye"},
+          "nomComplet": {"type": "string", "example": "Diallo Abdoulaye"},
+          "telephone": {"type": "string", "example": "782917770"},
+          "email": {"type": "string", "example": "abdoulaye.diallo@example.com"},
+          "statut": {"type": "string", "example": "actif"},
+          "langue": {"type": "string", "example": "fr"},
+          "themeSombre": {"type": "boolean", "example": false},
+          "scannerActif": {"type": "boolean", "example": true},
+          "soldeTotal": {"type": "number", "format": "float", "example": 0},
+          "metadata": {
+            "properties": {
+              "derniereModification": {"type": "string", "format": "date-time"},
+              "dateCreation": {"type": "string", "format": "date-time"},
+              "version": {"type": "integer", "example": 1}
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "AuthToken": {
+        "properties": {
+          "token_type": {"type": "string", "example": "Bearer"},
+          "expires_in": {"description": "30 minutes en secondes", "type": "integer", "example": 1800},
+          "access_token": {"type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+          "refresh_token": {"description": "Expire dans 1 heure", "type": "string", "example": "refresh_token_string"}
+        },
+        "type": "object"
+      },
+      "SmsSession": {
+        "properties": {
+          "session_id": {"type": "string", "example": "123"},
+          "sms_sent": {"type": "boolean", "example": true}
+        },
+        "type": "object"
+      },
+      "OAuthToken": {
+        "properties": {
+          "token_type": {"type": "string", "example": "Bearer"},
+          "expires_in": {"type": "integer", "example": 31536000},
+          "access_token": {"type": "string"},
+          "refresh_token": {"type": "string"}
+        },
+        "type": "object"
+      },
+      "Dashboard": {
+        "properties": {
+          "user": {
+            "properties": {
+              "id": {"type": "integer", "example": 1},
+              "nom": {"type": "string", "example": "Diallo"}
+            },
+            "type": "object"
+          },
+          "compte": {
+            "properties": {
+              "id": {"type": "integer", "example": 1},
+              "numero": {"type": "string", "example": "OMCPT1234567890"},
+              "solde": {"type": "number", "format": "float", "example": 1500.5},
+              "qrCode": {"type": "string", "example": "QR_774047668"}
+            },
+            "type": "object"
+          },
+          "recentTransactions": {
+            "type": "array",
+            "items": {"$ref": "#/components/schemas/Transaction"}
+          }
+        },
+        "type": "object"
+      },
+      "Compte": {
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "numero_compte": {"type": "string", "example": "OM123456789"},
+          "solde": {"type": "number", "format": "float", "example": 1500.5},
+          "statut": {"type": "string", "enum": ["actif", "bloque", "ferme"], "example": "actif"},
+          "plafond_journalier": {"type": "number", "format": "float", "example": 50000},
+          "date_ouverture": {"type": "string", "format": "date", "example": "2024-01-15"},
+          "user": {"$ref": "#/components/schemas/User"},
+          "client": {"type": "object"}
+        },
+        "type": "object"
+      },
+      "Transaction": {
+        "properties": {
+          "id": {"type": "integer", "example": 1},
+          "reference": {"type": "string", "example": "TXN20241112001"},
+          "type": {"type": "string", "enum": ["transfert", "paiement", "depot", "retrait", "achat_credit"], "example": "transfert"},
+          "montant": {"type": "number", "format": "float", "example": 5000},
+          "frais": {"type": "number", "format": "float", "example": 50},
+          "statut": {"type": "string", "enum": ["en_attente", "validee", "echouee", "annulee"], "example": "validee"},
+          "description": {"type": "string", "example": "Transfert vers John Doe"},
+          "date_execution": {"type": "string", "format": "date-time"},
+          "emetteur": {"$ref": "#/components/schemas/Compte"},
+          "destinataire": {"$ref": "#/components/schemas/Compte"},
+          "marchand": {"type": "object"}
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "passport": {
+        "type": "apiKey",
+        "description": "Enter token in format (Bearer <token>)",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "tags": [
+    {"name": "Comptes", "description": "Gestion des comptes bancaires"},
+    {"name": "Transactions", "description": "Gestion des transactions financières"},
+    {"name": "Authentication", "description": "Authentication"},
+    {"name": "Dashboard", "description": "Dashboard"}
+  ]
+}
