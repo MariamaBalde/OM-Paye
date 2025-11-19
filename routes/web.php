@@ -17,7 +17,24 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Redirect to API documentation
+// Custom Swagger UI route
 Route::get('/api-docs', function () {
-    return redirect('/docs');
+    $documentation = 'default';
+    $urlToDocs = route('l5-swagger.'.$documentation.'.api');
+    $configUrl = null;
+    $validatorUrl = null;
+    $operationsSorter = null;
+
+    return view('vendor.l5-swagger.index', compact(
+        'documentation',
+        'urlToDocs',
+        'configUrl',
+        'validatorUrl',
+        'operationsSorter'
+    ));
+});
+
+// Fallback redirect
+Route::get('/docs', function () {
+    return redirect('/api-docs');
 });
