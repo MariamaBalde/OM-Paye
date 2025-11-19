@@ -17,21 +17,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Custom Swagger UI route
+// Simple Swagger UI route using CDN
 Route::get('/api-docs', function () {
-    $documentation = 'default';
-    $urlToDocs = route('l5-swagger.'.$documentation.'.api');
-    $configUrl = null;
-    $validatorUrl = null;
-    $operationsSorter = null;
-
-    return view('vendor.l5-swagger.index', compact(
-        'documentation',
-        'urlToDocs',
-        'configUrl',
-        'validatorUrl',
-        'operationsSorter'
-    ));
+    return view('swagger');
 });
 
 // Fallback redirect
