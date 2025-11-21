@@ -99,11 +99,6 @@ class Compte extends Model
         });
     }
 
-    // Accesseur pour calculer le solde comme somme des dépôts - somme des retraits
-    public function getSoldeAttribute($value)
-    {
-        $deposits = $this->transactionsEmises()->where('type', 'depot')->where('statut', 'validee')->sum('montant');
-        $withdrawals = $this->transactionsEmises()->where('type', 'retrait')->where('statut', 'validee')->sum('montant');
-        return $deposits - $withdrawals;
-    }
+    // Le solde est maintenant stocké directement en base de données
+    // et mis à jour lors des transactions
 }

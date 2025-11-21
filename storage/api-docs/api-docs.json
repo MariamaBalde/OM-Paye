@@ -1129,10 +1129,112 @@
                                             "example": "Historique des transactions récupéré avec succès"
                                         },
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/Transaction"
-                                            }
+                                            "properties": {
+                                                "transactions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "transfert",
+                                                                    "paiement",
+                                                                    "depot",
+                                                                    "retrait",
+                                                                    "achat_credit"
+                                                                ],
+                                                                "example": "transfert"
+                                                            },
+                                                            "type_label": {
+                                                                "type": "string",
+                                                                "example": "Transfert d'argent"
+                                                            },
+                                                            "montant": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": -5000
+                                                            },
+                                                            "devise": {
+                                                                "type": "string",
+                                                                "example": "CFA"
+                                                            },
+                                                            "montant_formate": {
+                                                                "type": "string",
+                                                                "example": "- 5 000 CFA"
+                                                            },
+                                                            "destinataire": {
+                                                                "properties": {
+                                                                    "nom": {
+                                                                        "type": "string",
+                                                                        "example": "Alpha Gounass",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "numero": {
+                                                                        "type": "string",
+                                                                        "example": "771234567",
+                                                                        "nullable": true
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "statut": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "en_attente",
+                                                                    "validee",
+                                                                    "echouee",
+                                                                    "annulee"
+                                                                ],
+                                                                "example": "validee"
+                                                            },
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2024-11-02T09:21:00Z"
+                                                            },
+                                                            "date_formate": {
+                                                                "type": "string",
+                                                                "example": "02/11 09:21"
+                                                            },
+                                                            "reference": {
+                                                                "type": "string",
+                                                                "example": "OM-TXN123456"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "properties": {
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "current_page": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "has_more": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"
@@ -1148,6 +1250,109 @@
                     },
                     "404": {
                         "description": "Account not found"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/transactions/{id}": {
+            "get": {
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Afficher les détails d'une transaction",
+                "description": "Récupérer les détails complets d'une transaction spécifique au format prototype",
+                "operationId": "2a6d0d9d6950359d14a92f71c3a55b6d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Transaction ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transaction details retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Détails de la transaction récupérés avec succès"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "reference": {
+                                                    "type": "string",
+                                                    "example": "PP251119.1400.C27819"
+                                                },
+                                                "destinataire": {
+                                                    "type": "string",
+                                                    "example": "Sarr Fatou"
+                                                },
+                                                "expediteur": {
+                                                    "type": "string",
+                                                    "example": "774047668"
+                                                },
+                                                "montant": {
+                                                    "type": "string",
+                                                    "example": "300 CFA"
+                                                },
+                                                "date": {
+                                                    "type": "string",
+                                                    "example": "19/11/2025 14:00"
+                                                },
+                                                "message_recu": {
+                                                    "type": "string",
+                                                    "example": "Transaction effectuée"
+                                                },
+                                                "actions": {
+                                                    "properties": {
+                                                        "partager": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "appeler": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "annuler": {
+                                                            "type": "boolean",
+                                                            "example": false
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "403": {
+                        "description": "Access denied to this transaction"
+                    },
+                    "404": {
+                        "description": "Transaction not found"
                     }
                 },
                 "security": [

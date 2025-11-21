@@ -24,6 +24,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configuration Passport - tokens expirent en 1 heure par défaut
+        Passport::personalAccessTokensExpireIn(now()->addHour());
+
         // Définir les gates basés sur les permissions
         Gate::define('transfer-money', function ($user) {
             return $user->hasPermission('transfer-money');
