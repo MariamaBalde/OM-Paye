@@ -1129,10 +1129,112 @@
                                             "example": "Historique des transactions récupéré avec succès"
                                         },
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/Transaction"
-                                            }
+                                            "properties": {
+                                                "transactions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "integer",
+                                                                "example": 1
+                                                            },
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "transfert",
+                                                                    "paiement",
+                                                                    "depot",
+                                                                    "retrait",
+                                                                    "achat_credit"
+                                                                ],
+                                                                "example": "transfert"
+                                                            },
+                                                            "type_label": {
+                                                                "type": "string",
+                                                                "example": "Transfert d'argent"
+                                                            },
+                                                            "montant": {
+                                                                "type": "number",
+                                                                "format": "float",
+                                                                "example": -5000
+                                                            },
+                                                            "devise": {
+                                                                "type": "string",
+                                                                "example": "CFA"
+                                                            },
+                                                            "montant_formate": {
+                                                                "type": "string",
+                                                                "example": "- 5 000 CFA"
+                                                            },
+                                                            "destinataire": {
+                                                                "properties": {
+                                                                    "nom": {
+                                                                        "type": "string",
+                                                                        "example": "Alpha Gounass",
+                                                                        "nullable": true
+                                                                    },
+                                                                    "numero": {
+                                                                        "type": "string",
+                                                                        "example": "771234567",
+                                                                        "nullable": true
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "statut": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "en_attente",
+                                                                    "validee",
+                                                                    "echouee",
+                                                                    "annulee"
+                                                                ],
+                                                                "example": "validee"
+                                                            },
+                                                            "date": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2024-11-02T09:21:00Z"
+                                                            },
+                                                            "date_formate": {
+                                                                "type": "string",
+                                                                "example": "02/11 09:21"
+                                                            },
+                                                            "reference": {
+                                                                "type": "string",
+                                                                "example": "OM-TXN123456"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "properties": {
+                                                        "total": {
+                                                            "type": "integer",
+                                                            "example": 45
+                                                        },
+                                                        "current_page": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "per_page": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        },
+                                                        "last_page": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "has_more": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
                                         }
                                     },
                                     "type": "object"

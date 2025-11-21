@@ -346,7 +346,31 @@ class TransactionController extends Controller
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Historique des transactions récupéré avec succès"),
-     *             @OA\Property(property="data", type="array", @OA\Items(ref="#/components/schemas/Transaction"))
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="transactions", type="array", @OA\Items(
+     *                     @OA\Property(property="id", type="integer", example=1),
+     *                     @OA\Property(property="type", type="string", enum={"transfert", "paiement", "depot", "retrait", "achat_credit"}, example="transfert"),
+     *                     @OA\Property(property="type_label", type="string", example="Transfert d'argent"),
+     *                     @OA\Property(property="montant", type="number", format="float", example=-5000),
+     *                     @OA\Property(property="devise", type="string", example="CFA"),
+     *                     @OA\Property(property="montant_formate", type="string", example="- 5 000 CFA"),
+     *                     @OA\Property(property="destinataire", type="object",
+     *                         @OA\Property(property="nom", type="string", nullable=true, example="Alpha Gounass"),
+     *                         @OA\Property(property="numero", type="string", nullable=true, example="771234567")
+     *                     ),
+     *                     @OA\Property(property="statut", type="string", enum={"en_attente", "validee", "echouee", "annulee"}, example="validee"),
+     *                     @OA\Property(property="date", type="string", format="date-time", example="2024-11-02T09:21:00Z"),
+     *                     @OA\Property(property="date_formate", type="string", example="02/11 09:21"),
+     *                     @OA\Property(property="reference", type="string", example="OM-TXN123456")
+     *                 )),
+     *                 @OA\Property(property="pagination", type="object",
+     *                     @OA\Property(property="total", type="integer", example=45),
+     *                     @OA\Property(property="current_page", type="integer", example=1),
+     *                     @OA\Property(property="per_page", type="integer", example=20),
+     *                     @OA\Property(property="last_page", type="integer", example=3),
+     *                     @OA\Property(property="has_more", type="boolean", example=true)
+     *                 )
+     *             )
      *         )
      *     ),
      *     @OA\Response(response=401, description="Unauthorized"),
@@ -370,7 +394,7 @@ class TransactionController extends Controller
             return $this->errorResponse('Accès non autorisé à ce compte', 403);
         }
 
-        $query = Transaction::with(['emetteur.user', 'destinataire.user', 'marchand']);
+        $query = Transaction::query();
 
         // Filtrer uniquement les transactions de ce compte (émises ou reçues)
         $query->where(function ($q) use ($compte) {
@@ -388,10 +412,43 @@ class TransactionController extends Controller
         $perPage = min($request->get('per_page', 20), 100);
         $transactions = $query->paginate($perPage);
 
-        return $this->successResponse(
-            \App\Http\Resources\TransactionResource::collection($transactions),
-            'Historique des transactions récupéré avec succès'
-        );
+        // Formater les données selon le prototype
+        $transactionData = collect($transactions->items())->map(function ($transaction) use ($compte) {
+            // Calculer le montant selon le type de transaction et la perspective du compte
+            $montant = $this->calculateDisplayAmount($transaction, $compte);
+
+            return [
+                'id' => $transaction->id,
+                'type' => $transaction->type,
+                'type_label' => $this->getTypeLabel($transaction->type),
+                'montant' => (float) $montant,
+                'devise' => 'CFA',
+                'montant_formate' => ($montant < 0 ? '-' : '') . ' ' . number_format(abs($montant), 0, ',', ' ') . ' CFA',
+                'destinataire' => [
+                    'nom' => $transaction->destinataire_nom,
+                    'numero' => $transaction->destinataire_numero
+                ],
+                'statut' => $transaction->statut,
+                'date' => $transaction->date_transaction?->toISOString(),
+                'date_formate' => $transaction->date_transaction?->format('d/m H:i'),
+                'reference' => $transaction->reference
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Historique des transactions récupéré avec succès',
+            'data' => [
+                'transactions' => $transactionData,
+                'pagination' => [
+                    'total' => $transactions->total(),
+                    'current_page' => $transactions->currentPage(),
+                    'per_page' => $transactions->perPage(),
+                    'last_page' => $transactions->lastPage(),
+                    'has_more' => $transactions->hasMorePages()
+                ]
+            ]
+        ]);
     }
 
     /**
@@ -454,29 +511,77 @@ class TransactionController extends Controller
             });
         }
     }
+/**
+ * Appliquer le tri
+ */
+private function applyTransactionSorting($query, Request $request)
+{
+    $sortBy = $request->get('sort', 'created_at');
+    $order = strtolower($request->get('order', 'desc'));
 
-    /**
-     * Appliquer le tri
-     */
-    private function applyTransactionSorting($query, Request $request)
-    {
-        $sortBy = $request->get('sort', 'created_at');
-        $order = strtolower($request->get('order', 'desc'));
-
-        // Valider les colonnes de tri autorisées
-        $allowedSorts = ['created_at', 'montant', 'type', 'statut'];
-        if (!in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-        }
-
-        // Valider l'ordre
-        if (!in_array($order, ['asc', 'desc'])) {
-            $order = 'desc';
-        }
-
-        $query->orderBy($sortBy, $order);
+    // Valider les colonnes de tri autorisées
+    $allowedSorts = ['created_at', 'montant', 'type', 'statut'];
+    if (!in_array($sortBy, $allowedSorts)) {
+        $sortBy = 'created_at';
     }
-    
 
-   
+    // Valider l'ordre
+    if (!in_array($order, ['asc', 'desc'])) {
+        $order = 'desc';
+    }
+
+    $query->orderBy($sortBy, $order);
+}
+
+/**
+ * Obtenir le label lisible pour un type de transaction
+ */
+private function getTypeLabel(string $type): string
+{
+    $labels = [
+        'transfert' => 'Transfert d\'argent',
+        'paiement' => 'Paiement marchand',
+        'depot' => 'Dépôt',
+        'retrait' => 'Retrait',
+        'achat_credit' => 'Achat de crédit'
+    ];
+
+    return $labels[$type] ?? ucfirst(str_replace('_', ' ', $type));
+}
+
+/**
+ * Calculer le montant à afficher selon le type de transaction et la perspective du compte
+ */
+private function calculateDisplayAmount($transaction, $compte): float
+{
+    switch ($transaction->type) {
+        case 'depot':
+            // Les dépôts sont toujours positifs (crédits)
+            return $transaction->montant;
+
+        case 'retrait':
+            // Les retraits sont toujours négatifs (débits)
+            return -$transaction->montant;
+
+        case 'paiement':
+        case 'achat_credit':
+            // Les paiements sont toujours négatifs (débits)
+            return -$transaction->montant;
+
+        case 'transfert':
+            // Pour les transferts, dépend de si le compte est émetteur ou destinataire
+            if ($transaction->compte_emetteur_id == $compte->id) {
+                // Transfert sortant : négatif
+                return -$transaction->montant;
+            } else {
+                // Transfert entrant : positif
+                return $transaction->montant;
+            }
+
+        default:
+            return $transaction->montant;
+    }
+}
+
+
 }

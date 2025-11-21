@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use App\Models\VerificationCode;
 use App\Models\Compte;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Service pour la logique métier des transactions

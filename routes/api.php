@@ -39,7 +39,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Authenticated routes - MVP Orange Money
-    Route::middleware(['auth:api'])->group(function () {
+    Route::middleware(['auth:api', 'check.token.expiration'])->group(function () {
 
         // Authentification (2 endpoints supplémentaires)
         Route::prefix('auth')->group(function () {
