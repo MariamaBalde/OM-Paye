@@ -452,6 +452,91 @@ class TransactionController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/transactions/{id}",
+     *     summary="Afficher les détails d'une transaction",
+     *     description="Récupérer les détails complets d'une transaction spécifique au format prototype",
+     *     tags={"Transactions"},
+     *     security={{"passport":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         description="Transaction ID",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Transaction details retrieved successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Détails de la transaction récupérés avec succès"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="reference", type="string", example="PP251119.1400.C27819"),
+     *                 @OA\Property(property="destinataire", type="string", example="Sarr Fatou"),
+     *                 @OA\Property(property="expediteur", type="string", example="774047668"),
+     *                 @OA\Property(property="montant", type="string", example="300 CFA"),
+     *                 @OA\Property(property="date", type="string", example="19/11/2025 14:00"),
+     *                 @OA\Property(property="message_recu", type="string", example="Transaction effectuée"),
+     *                 @OA\Property(property="actions", type="object",
+     *                     @OA\Property(property="partager", type="boolean", example=true),
+     *                     @OA\Property(property="appeler", type="boolean", example=true),
+     *                     @OA\Property(property="annuler", type="boolean", example=false)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Unauthorized"),
+     *     @OA\Response(response=403, description="Access denied to this transaction"),
+     *     @OA\Response(response=404, description="Transaction not found")
+     * )
+     */
+    public function show(int $id): JsonResponse
+    {
+        $user = auth()->user();
+
+        // Trouver la transaction
+        $transaction = Transaction::with(['emetteur.user', 'destinataire.user', 'marchand'])->find($id);
+
+        if (!$transaction) {
+            return $this->notFoundResponse('Transaction non trouvée');
+        }
+
+        // Vérifier que l'utilisateur a accès à cette transaction
+        // L'utilisateur doit être soit l'émetteur, soit le destinataire, soit un admin
+        $hasAccess = false;
+
+        if ($user->hasRole('admin')) {
+            $hasAccess = true;
+        } elseif ($transaction->emetteur && $transaction->emetteur->user_id === $user->id) {
+            $hasAccess = true;
+        } elseif ($transaction->destinataire && $transaction->destinataire->user_id === $user->id) {
+            $hasAccess = true;
+        }
+
+        if (!$hasAccess) {
+            return $this->errorResponse('Accès non autorisé à cette transaction', 403);
+        }
+
+        // Formater les données selon le prototype exact
+        $data = [
+            'reference' => $this->generatePrototypeReference($transaction),
+            'destinataire' => $this->formatDestinataireWithEmoji($transaction),
+            'expediteur' => $this->formatExpediteur($transaction),
+            'montant' => $this->formatMontant($transaction),
+            'date' => $this->formatDate($transaction),
+            'message_recu' => $transaction->description ?? 'Transaction effectuée',
+            'actions' => [
+                'partager' => true,
+                'appeler' => true,
+                'annuler' => $this->canCancelTransaction($transaction)
+            ]
+        ];
+
+        return $this->successResponse($data, 'Détails de la transaction récupérés avec succès');
+    }
+
+    /**
      * Appliquer les filtres de requête
      */
     private function applyTransactionFilters($query, Request $request)
@@ -581,6 +666,75 @@ private function calculateDisplayAmount($transaction, $compte): float
         default:
             return $transaction->montant;
     }
+}
+
+/**
+ * Générer la référence au format prototype (PP251119.1400.C27819)
+ */
+private function generatePrototypeReference($transaction): string
+{
+    $date = $transaction->created_at ?? now();
+    $day = $date->format('d');
+    $month = $date->format('m');
+    $year = $date->format('y');
+    $hour = $date->format('H');
+    $minute = $date->format('i');
+
+    // Générer un code aléatoire de 5 caractères
+    $randomCode = strtoupper(substr(md5($transaction->id), 0, 5));
+
+    return "PP{$year}{$month}{$day}.{$hour}{$minute}.{$randomCode}";
+}
+
+/**
+ * Formater le destinataire avec nom complet
+ */
+private function formatDestinataireWithEmoji($transaction): string
+{
+    if ($transaction->destinataire && $transaction->destinataire->user) {
+        return $transaction->destinataire->user->nom . ' ' . $transaction->destinataire->user->prenom;
+    } elseif ($transaction->destinataire_nom) {
+        return $transaction->destinataire_nom;
+    }
+    return 'Destinataire inconnu';
+}
+
+/**
+ * Formater l'expéditeur (numéro de téléphone uniquement)
+ */
+private function formatExpediteur($transaction): string
+{
+    if ($transaction->emetteur && $transaction->emetteur->user) {
+        return $transaction->emetteur->user->telephone;
+    }
+    return 'Numéro inconnu';
+}
+
+/**
+ * Formater le montant (avec CFA, sans frais séparés)
+ */
+private function formatMontant($transaction): string
+{
+    return $transaction->montant . ' CFA';
+}
+
+/**
+ * Formater la date au format français
+ */
+private function formatDate($transaction): string
+{
+    $date = $transaction->date_transaction ?? $transaction->created_at ?? now();
+    return $date->format('d/m/Y H:i');
+}
+
+/**
+ * Vérifier si la transaction peut être annulée
+ */
+private function canCancelTransaction($transaction): bool
+{
+    // Une transaction peut être annulée si elle est récente (moins de 24h) et en statut 'validee'
+    $isRecent = $transaction->created_at && $transaction->created_at->diffInHours(now()) < 24;
+    return $transaction->statut === 'validee' && $isRecent;
 }
 
 

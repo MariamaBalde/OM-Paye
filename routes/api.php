@@ -57,8 +57,9 @@ Route::prefix('v1')->group(function () {
             Route::get('{numcompte}/balance', [CompteController::class, 'balance']);
         });
 
-        // Transactions financières (5 endpoints)
+        // Transactions financières (6 endpoints)
         Route::prefix('transactions')->middleware(RatingMiddleware::class . ':50,1')->group(function () {
+            Route::get('{id}', [TransactionController::class, 'show']);
             Route::post('transfert', [TransactionController::class, 'transfer']);
             Route::post('paiement', [TransactionController::class, 'payment']);
             Route::post('depot', [TransactionController::class, 'deposit']);
