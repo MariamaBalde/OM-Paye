@@ -24,7 +24,6 @@ class LoginRequest extends FormRequest
         return [
             'telephone' => 'required|string|regex:/^[0-9]{9}$/',
             'code_secret' => 'required|string|regex:/^[0-9]{4}$/',
-            'session_id' => 'required|string|exists:verification_codes,id',
         ];
     }
 
@@ -38,8 +37,6 @@ class LoginRequest extends FormRequest
             'telephone.regex' => 'Le numéro de téléphone doit contenir exactement 9 chiffres.',
             'code_secret.required' => 'Le code secret est obligatoire.',
             'code_secret.regex' => 'Le code secret doit contenir exactement 4 chiffres.',
-            'session_id.required' => 'L\'identifiant de session est obligatoire.',
-            'session_id.exists' => 'Session invalide ou expirée.',
         ];
     }
 }

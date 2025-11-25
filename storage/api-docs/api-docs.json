@@ -25,7 +25,7 @@
                     "Authentication"
                 ],
                 "summary": "Inscription utilisateur Orange Money",
-                "description": "Créer un nouveau compte utilisateur avec numéro de téléphone et code secret",
+                "description": "Créer un nouveau compte utilisateur avec numéro de téléphone et code secret. Un SMS de confirmation est envoyé.",
                 "operationId": "ed42f392010c301892e640067141676e",
                 "requestBody": {
                     "required": true,
@@ -76,7 +76,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Compte créé avec succès"
+                                            "example": "Compte créé avec succès. Un SMS de confirmation a été envoyé."
                                         },
                                         "data": {
                                             "$ref": "#/components/schemas/User"
@@ -114,8 +114,8 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Étape 1: Initiation de connexion OM Pay",
-                "description": "Saisir numéro de téléphone → SMS envoyé automatiquement → Retourne session_id pour tracker la session",
+                "summary": "Initiation de connexion OM Pay",
+                "description": "Saisir numéro de téléphone → Vérifie que l'utilisateur existe → Prêt pour vérification du code secret",
                 "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
                 "requestBody": {
                     "required": true,
@@ -139,7 +139,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "SMS envoyé avec succès - Prêt pour vérification SMS",
+                        "description": "Utilisateur trouvé - Prêt pour vérification du code secret",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -150,10 +150,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "SMS envoyé"
-                                        },
-                                        "data": {
-                                            "$ref": "#/components/schemas/SmsSession"
+                                            "example": "Utilisateur trouvé"
                                         }
                                     },
                                     "type": "object"
@@ -209,8 +206,8 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Étape 2: Vérification du code secret - Connexion finale",
-                "description": "Après vérification SMS côté backend → Saisir code secret (4 chiffres) → Connexion complète",
+                "summary": "Vérification du code secret - Connexion finale",
+                "description": "Saisir numéro de téléphone et code secret (4 chiffres) → Connexion complète",
                 "operationId": "6482b1c0c2fb9a2faadd967165e8692c",
                 "requestBody": {
                     "required": true,
@@ -219,12 +216,11 @@
                             "schema": {
                                 "required": [
                                     "telephone",
-                                    "code_secret",
-                                    "session_id"
+                                    "code_secret"
                                 ],
                                 "properties": {
                                     "telephone": {
-                                        "description": "Numéro de téléphone utilisé à l'étape 1",
+                                        "description": "Numéro de téléphone",
                                         "type": "string",
                                         "example": "782917770"
                                     },
@@ -232,11 +228,6 @@
                                         "description": "Code secret Orange Money (4 chiffres)",
                                         "type": "string",
                                         "example": "1234"
-                                    },
-                                    "session_id": {
-                                        "description": "Session ID retourné à l'étape 1",
-                                        "type": "string",
-                                        "example": "123"
                                     }
                                 },
                                 "type": "object"
@@ -288,26 +279,6 @@
                             }
                         }
                     },
-                    "400": {
-                        "description": "Session expirée ou invalide",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Session expirée ou invalide"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
                     "401": {
                         "description": "Code secret incorrect",
                         "content": {
@@ -351,14 +322,14 @@
                 }
             }
         },
-        "/v1/auth/logout": {
+        "/auth/logout": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "User logout",
                 "description": "Logout the authenticated user",
-                "operationId": "5d08897a20d1ebcb2668463963e0097e",
+                "operationId": "0d29c740dc06d77602af8095bf4654cc",
                 "responses": {
                     "200": {
                         "description": "Logout successful",
