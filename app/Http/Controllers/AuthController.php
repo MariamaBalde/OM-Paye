@@ -110,7 +110,7 @@ class AuthController extends Controller
      * @OA\Post(
      *     path="/auth/register",
      *     summary="Inscription utilisateur Orange Money",
-     *     description="Créer un nouveau compte utilisateur avec numéro de téléphone et code secret",
+     *     description="Créer un nouveau compte utilisateur avec numéro de téléphone et code secret. Un SMS de confirmation est envoyé.",
      *     tags={"Authentication"},
      *     @OA\RequestBody(
      *         required=true,
@@ -127,7 +127,7 @@ class AuthController extends Controller
      *         description="Compte créé avec succès",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Compte créé avec succès"),
+     *             @OA\Property(property="message", type="string", example="Compte créé avec succès. Un SMS de confirmation a été envoyé."),
      *             @OA\Property(property="data", ref="#/components/schemas/User")
      *         )
      *     ),
@@ -179,9 +179,14 @@ class AuthController extends Controller
             'compte_id' => $compte->id,
         ]);
 
+        // Envoyer un SMS de confirmation d'inscription
+        $smsService = new SmsService();
+        $message = "Orange Money: Bienvenue {$user->prenom}! Votre compte a été créé avec succès.";
+        $smsService->sendSms($request->telephone, $message);
+
         return $this->successResponse(
             null,
-            'Compte créé avec succès',
+            'Compte créé avec succès. Un SMS de confirmation a été envoyé.',
             201
         );
     }
@@ -189,8 +194,8 @@ class AuthController extends Controller
     /**
      * @OA\Post(
      *     path="/auth/login",
-     *     summary="Étape 1: Initiation de connexion OM Pay",
-     *     description="Saisir numéro de téléphone → SMS envoyé automatiquement → Retourne session_id pour tracker la session",
+     *     summary="Initiation de connexion OM Pay",
+     *     description="Saisir numéro de téléphone → Vérifie que l'utilisateur existe → Prêt pour vérification du code secret",
      *     tags={"Authentication"},
      *     @OA\RequestBody(
      *         required=true,
@@ -201,11 +206,10 @@ class AuthController extends Controller
      *     ),
      *     @OA\Response(
      *         response=200,
-     *         description="SMS envoyé avec succès - Prêt pour vérification SMS",
+     *         description="Utilisateur trouvé - Prêt pour vérification du code secret",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="SMS envoyé"),
-     *             @OA\Property(property="data", ref="#/components/schemas/SmsSession")
+     *             @OA\Property(property="message", type="string", example="Utilisateur trouvé")
      *         )
      *     ),
      *     @OA\Response(
@@ -230,67 +234,28 @@ class AuthController extends Controller
     {
         $user = User::where('telephone', $request->telephone)->first();
 
-        // Générer un code SMS (4 chiffres)
-        $smsCode = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
-
-        // Créer le code de vérification SMS avec session_id
-        $verificationCode = VerificationCode::create([
-            'user_id' => $user->id,
-            'code' => $smsCode,
-            'type' => 'sms',
-            'expire_at' => now()->addMinutes(10), // 10 minutes pour compléter le processus
-            'verifie' => false,
-        ]);
-
-        // Envoyer le SMS via le service configuré
-        $smsService = new SmsService();
-        $message = "Orange Money: Votre code de vérification est {$smsCode}. Valide 10 minutes.";
-
-        $smsResult = $smsService->sendSms($request->telephone, $message);
-
-        if (!$smsResult['success']) {
-            Log::error('SMS sending failed', [
-                'telephone' => $request->telephone,
-                'error' => $smsResult['error']
-            ]);
-
-            // Supprimer le code de vérification si l'envoi SMS échoue
-            $verificationCode->delete();
-
-            return $this->errorResponse(
-                'Erreur lors de l\'envoi du SMS. Veuillez réessayer.',
-                500
-            );
+        if (!$user) {
+            return $this->errorResponse('Ce numéro de téléphone n\'est pas enregistré dans Orange Money.', 404);
         }
 
-        Log::info("SMS envoyé avec succès", [
-            'telephone' => $request->telephone,
-            'message_id' => $smsResult['message_id'],
-            'session_id' => $verificationCode->id
-        ]);
-
         return $this->successResponse(
-            [
-                'session_id' => (string) $verificationCode->id,
-                'sms_sent' => true,
-            ],
-            'SMS envoyé avec succès'
+            null,
+            'Utilisateur trouvé. Prêt pour vérification du code secret.'
         );
     }
 
     /**
      * @OA\Post(
      *     path="/auth/verify-code-secret",
-     *     summary="Étape 2: Vérification du code secret - Connexion finale",
-     *     description="Après vérification SMS côté backend → Saisir code secret (4 chiffres) → Connexion complète",
+     *     summary="Vérification du code secret - Connexion finale",
+     *     description="Saisir numéro de téléphone et code secret (4 chiffres) → Connexion complète",
      *     tags={"Authentication"},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"telephone","code_secret","session_id"},
-     *             @OA\Property(property="telephone", type="string", example="782917770", description="Numéro de téléphone utilisé à l'étape 1"),
-     *             @OA\Property(property="code_secret", type="string", example="1234", description="Code secret Orange Money (4 chiffres)"),
-     *             @OA\Property(property="session_id", type="string", example="123", description="Session ID retourné à l'étape 1")
+     *             required={"telephone","code_secret"},
+     *             @OA\Property(property="telephone", type="string", example="782917770", description="Numéro de téléphone"),
+     *             @OA\Property(property="code_secret", type="string", example="1234", description="Code secret Orange Money (4 chiffres)")
      *         )
      *     ),
      *     @OA\Response(
@@ -305,14 +270,6 @@ class AuthController extends Controller
      *                 @OA\Property(property="access_token", type="string", example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."),
      *                 @OA\Property(property="refresh_token", type="string", example="refresh_token_string", description="Expire dans 1 heure")
      *             )
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Session expirée ou invalide",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Session expirée ou invalide")
      *         )
      *     ),
      *     @OA\Response(
@@ -341,17 +298,6 @@ class AuthController extends Controller
             return $this->errorResponse('Numéro de téléphone ou code secret incorrect', 401);
         }
 
-        // Vérifier la session SMS
-        $verificationCode = VerificationCode::where('id', $request->session_id)
-            ->where('user_id', $user->id)
-            ->where('type', 'sms')
-            ->where('expire_at', '>', now())
-            ->first();
-
-        if (!$verificationCode) {
-            return $this->errorResponse('Session expirée ou invalide', 400);
-        }
-
         $compte = $user->comptePrincipal;
 
         if (!$compte || !Hash::check($request->code_secret, $compte->code_secret)) {
@@ -361,9 +307,6 @@ class AuthController extends Controller
         if ($user->statut !== 'actif') {
             return $this->errorResponse('Votre compte est ' . $user->statut, 403);
         }
-
-        // Marquer le code de vérification comme utilisé
-        $verificationCode->update(['verifie' => true]);
 
         // Créer un token d'accès personnel (qui fonctionne comme OAuth2 token)
         $tokenResult = $user->createToken('OrangeMoney');
@@ -391,7 +334,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/auth/logout",
+     *     path="/auth/logout",
      *     summary="User logout",
      *     description="Logout the authenticated user",
      *     tags={"Authentication"},
@@ -409,21 +352,14 @@ class AuthController extends Controller
      */
     public function logout(): JsonResponse
     {
-        $request = request();
+        // Révoquer le token actuel de l'utilisateur authentifié
+        $user = auth()->user();
+        if ($user && $user->token()) {
+            $user->token()->revoke();
 
-        // Révoquer le token d'accès si fourni
-        if ($request->has('access_token')) {
-            $accessToken = Token::where('id', $request->access_token)
-                ->where('revoked', false)
-                ->first();
-
-            if ($accessToken) {
-                $accessToken->update(['revoked' => true]);
-
-                // Révoquer aussi les refresh tokens associés
-                RefreshToken::where('access_token_id', $accessToken->id)
-                    ->update(['revoked' => true]);
-            }
+            // Révoquer également les refresh tokens associés
+            RefreshToken::where('access_token_id', $user->token()->id)
+                ->update(['revoked' => true]);
         }
 
         return $this->successResponse(null, 'Déconnexion réussie');

@@ -26,11 +26,6 @@ class TransactionResource extends JsonResource
             'statut' => $this->statut,
             'description' => $this->description,
             'dateTransaction' => $this->date_transaction?->toISOString(),
-            'metadata' => [
-                'derniereModification' => $this->updated_at?->toISOString(),
-                'version' => 1,
-                'codeVerifie' => (bool) $this->code_verifie
-            ],
             'relations' => $this->when($request->has('include'), [
                 'emetteur' => $this->whenLoaded('emetteur', function () {
                     return $this->emetteur ? [
