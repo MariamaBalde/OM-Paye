@@ -132,21 +132,10 @@
             validatorUrl: {!! isset($validatorUrl) ? '"' . $validatorUrl . '"' : 'null' !!},
             oauth2RedirectUrl: "{{ route('l5-swagger.'.$documentation.'.oauth2_callback', [], $useAbsolutePath) }}",
 
-             requestInterceptor: function(request) {
-                // ajout CSRF existant
+            requestInterceptor: function(request) {
                 request.headers['X-CSRF-TOKEN'] = '{{ csrf_token() }}';
-
-                // si Authorization fourni sans "Bearer ", le préfixer automatiquement
-                if (request.headers['Authorization'] && !request.headers['Authorization'].startsWith('Bearer ')) {
-                    request.headers['Authorization'] = 'Bearer ' + request.headers['Authorization'];
-                }
-
                 return request;
             },
-            // requestInterceptor: function(request) {
-            //     request.headers['X-CSRF-TOKEN'] = '{{ csrf_token() }}';
-            //     return request;
-            // },
 
             presets: [
                 SwaggerUIBundle.presets.apis,

@@ -51,9 +51,10 @@ php artisan db:seed --force
 # # Worker for notifications (fallback)
 # php artisan queue:work --queue=notifications --tries=3 --timeout=90 --sleep=3 --max-jobs=1000 > storage/logs/worker.log 2>&1 &
 
-# Publish Swagger UI assets
-echo "Publishing Swagger UI assets..."
-php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider" --tag=l5-swagger-ui-assets --force
+# Publish Swagger assets
+echo "Publishing Swagger assets..."
+php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider" --tag=views --force
+php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider" --tag=config --force
 
 # Generate API documentation
 echo "Generating API documentation..."
