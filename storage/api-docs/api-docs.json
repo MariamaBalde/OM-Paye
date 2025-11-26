@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": ""
+            "url": "https://om-paye.onrender.com"
         }
     ],
     "paths": {
