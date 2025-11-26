@@ -17,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override the L5Swagger controller with our custom one
+        $this->app->bind(\L5Swagger\Http\Controllers\SwaggerController::class, \App\Http\Controllers\SwaggerController::class);
     }
 
     /**
