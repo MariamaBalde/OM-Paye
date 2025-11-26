@@ -78,7 +78,7 @@ class CompteController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/comptes/{numcompte}/balance",
+     *     path="/api/v1/comptes/{numcompte}/balance",
      *     summary="Get account balance by account number",
      *     description="Get the balance of a specific account by its account number",
      *     tags={"Comptes"},
@@ -97,11 +97,8 @@ class CompteController extends Controller
      *             @OA\Property(property="success", type="boolean", example=true),
      *             @OA\Property(property="message", type="string", example="Solde récupéré avec succès"),
      *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="solde", type="number", format="float", example=1500.50),
-     *                 @OA\Property(property="numero_compte", type="string", example="OM123456789"),
-     *                 @OA\Property(property="plafond_journalier", type="number", format="float", example=50000.00),
-     *                 @OA\Property(property="statut", type="string", example="actif"),
-     *                 @OA\Property(property="devise", type="string", example="FCFA")
+     *                 @OA\Property(property="solde", type="string", example="44200 FCFA"),
+     *                 @OA\Property(property="numero_compte", type="string", example="OM123456789")
      *             )
      *         )
      *     ),
@@ -127,11 +124,8 @@ class CompteController extends Controller
         }
 
         return $this->successResponse([
-            'solde' => (float) $compte->solde,
-            'numero_compte' => $compte->numero_compte,
-            'plafond_journalier' => (float) $compte->plafond_journalier,
-            'statut' => $compte->statut,
-            'devise' => 'FCFA'
+            'solde' => $compte->solde . ' FCFA',
+            'numero_compte' => $compte->numero_compte
         ], 'Solde récupéré avec succès');
     }
 
