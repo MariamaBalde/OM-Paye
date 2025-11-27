@@ -54,7 +54,24 @@
               }
             }
           },
-          "422": {"description": "Données invalides"}
+          "422": {
+            "description": "Données invalides",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Les données fournies ne sont pas valides."
+                    },
+                    "errors": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -79,16 +96,14 @@
         },
         "responses": {
           "200": {
-            "description": "SMS envoyé avec succès - Prêt pour vérification SMS",
+            "description": "Utilisateur trouvé - Prêt pour vérification du code secret",
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
-                    "success": {"type": "boolean", "example": true},
-                    "message": {"type": "string", "example": "SMS envoyé"},
-                    "data": {"$ref": "#/components/schemas/SmsSession"}
-                  },
-                  "type": "object"
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Utilisateur trouvé" }
+                  }
                 }
               }
             }

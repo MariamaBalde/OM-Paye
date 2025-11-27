@@ -9,6 +9,7 @@ use App\Observers\TransactionObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL; // Import the URL facade
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,6 +48,8 @@ class AppServiceProvider extends ServiceProvider
                     Log::error('Failed to generate Swagger docs: ' . $e->getMessage());
                 }
             }
+
+            \URL::forceScheme('https'); // Force HTTPS for all URLs
         }
     }
 }
