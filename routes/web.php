@@ -35,3 +35,11 @@ Route::get('/storage/api-docs/static-api-docs.json', function () {
 Route::get('/docs', function () {
     return redirect('/api-docs');
 });
+
+Route::get('/docs/api-docs.json', function () {
+    $path = storage_path('api-docs/api-docs.json');
+    if (!file_exists($path)) {
+        abort(404, 'Swagger JSON file not found.');
+    }
+    return response()->file($path);
+});
