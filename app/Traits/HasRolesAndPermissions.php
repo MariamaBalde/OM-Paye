@@ -8,6 +8,14 @@ use App\Models\Permission;
 /**
  * Trait pour gérer les rôles et permissions des utilisateurs
  * Single Responsibility: Gestion centralisée des autorisations
+ *
+ * @method bool hasRole(string $roleName)
+ * @method bool hasAnyRole(array $roles)
+ * @method bool hasPermission(string $permissionName)
+ * @method bool hasAnyPermission(array $permissions)
+ * @method bool isAdmin()
+ * @method bool isClient()
+ * @method bool isMarchand()
  */
 trait HasRolesAndPermissions
 {

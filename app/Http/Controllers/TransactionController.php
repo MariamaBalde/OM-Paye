@@ -723,5 +723,8 @@ private function canCancelTransaction($transaction): bool
     return $transaction->statut === 'validee' && $isRecent;
 }
 
-
-}
+// // Vérifier les autorisations avec Gate
+// /** @phpstan-ignore-next-line */
+// if ($user->isMarchand() && $transaction->marchand_id && $transaction->marchand->user_id === $user->id) {
+//     return true;
+// }
