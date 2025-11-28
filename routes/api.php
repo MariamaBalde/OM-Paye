@@ -31,7 +31,7 @@ Route::get('/api-docs-json', function () {
 Route::get('/docs', function () {
     return view('l5-swagger::index', [
         'documentation' => 'default',
-        'urlToDocs' => url('/storage/api-docs/api-docs.json'),
+        'urlToDocs' => '/api-docs-json',  // ✅ URL RELATIVE
     ]);
 })->name('l5-swagger.docs');
 

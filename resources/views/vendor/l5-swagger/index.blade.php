@@ -29,7 +29,7 @@
     <script>
         window.onload = function() {
             const ui = SwaggerUIBundle({
-                url: "{{ $urlToDocs }}",
+                url: "{{ $urlToDocs }}",  // ✅ Variable Blade (URL relative)
                 dom_id: '#swagger-ui',
                 presets: [
                     SwaggerUIBundle.presets.apis,

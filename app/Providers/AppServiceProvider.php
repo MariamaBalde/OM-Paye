@@ -9,7 +9,6 @@ use App\Observers\TransactionObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL; // Import the URL facade
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,7 +48,10 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            \URL::forceScheme('https'); // Force HTTPS for all URLs
+            // ✅ SEULEMENT en production réelle (pas en localhost)
+            if (!in_array(config('app.url'), ['http://localhost', 'http://127.0.0.1', 'http://127.0.0.1:8001'])) {
+                \URL::forceScheme('https');
+            }
         }
     }
 }
