@@ -7,7 +7,6 @@
     },
     "servers": [
         {
-<<<<<<< HEAD
             "url": "https://om-paye.onrender.com/api/v1",
             "description": "Production API V1 server"
         },
@@ -16,10 +15,7 @@
             "description": "Local API V1 server"
         },
         {
-            "url": "https://om-paye.onrender.com"
-=======
-            "url": ""
->>>>>>> a056b246b0df2fa9daac5cb45eaab128ad53c807
+           
         }
     ],
     "paths": {
