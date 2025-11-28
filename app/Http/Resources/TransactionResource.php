@@ -24,7 +24,6 @@ class TransactionResource extends JsonResource
             'destinataireNumero' => $this->destinataire_numero,
             'destinataireNom' => $this->destinataire_nom,
             'statut' => $this->statut,
-            'description' => $this->description,
             'dateTransaction' => $this->date_transaction?->toISOString(),
             'relations' => $this->when($request->has('include'), [
                 'emetteur' => $this->whenLoaded('emetteur', function () {

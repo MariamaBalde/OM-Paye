@@ -168,7 +168,6 @@ public function up(): void
         $table->string('code_verification', 4)->nullable();
         $table->boolean('code_verifie')->default(false);
         $table->string('reference')->unique();
-        $table->text('description')->nullable();
         $table->timestamp('date_transaction')->useCurrent();
         $table->timestamps();
     });
@@ -336,7 +335,7 @@ class Transaction extends Model
         'compte_emetteur_id', 'compte_destinataire_id', 'marchand_id',
         'type', 'montant', 'frais', 'montant_total',
         'destinataire_numero', 'destinataire_nom', 'statut',
-        'code_verification', 'code_verifie', 'reference', 'description', 'date_transaction'
+        'code_verification', 'code_verifie', 'reference', 'date_transaction'
     ];
 
     protected $casts = [
@@ -354,28 +353,7 @@ class Transaction extends Model
                 $transaction->reference = 'TXN' . date('YmdHis') . rand(100, 999);
             }
             $transaction->montant_total = $transaction->montant + $transaction->frais;
-            $transaction->description = $transaction->generateDescription();
         });
-    }
-
-    private function generateDescription()
-    {
-        switch ($this->type) {
-            case 'transfert':
-                return "Transfert de {$this->montant}FCFA vers {$this->destinataire_nom}";
-            case 'paiement':
-                $marchand = $this->marchand;
-                $nomMarchand = $marchand ? $marchand->nom_commercial : 'Marchand inconnu';
-                return "Paiement de {$this->montant}FCFA chez {$nomMarchand}";
-            case 'depot':
-                return "Dépôt de {$this->montant}FCFA sur votre compte";
-            case 'retrait':
-                return "Retrait de {$this->montant}FCFA";
-            case 'achat_credit':
-                return "Achat de crédit de {$this->montant}FCFA";
-            default:
-                return "Transaction de {$this->montant}FCFA";
-        }
     }
 
     public function emetteur()

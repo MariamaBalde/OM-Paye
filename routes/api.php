@@ -18,6 +18,23 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// ✅ Route pour servir le fichier JSON (accessible publiquement)
+Route::get('/api-docs-json', function () {
+    $jsonPath = storage_path('api-docs/api-docs.json');
+    if (!file_exists($jsonPath)) {
+        return response()->json(['error' => 'Documentation not found'], 404);
+    }
+    return response()->file($jsonPath, ['Content-Type' => 'application/json']);
+});
+
+// ✅ Route pour afficher la documentation Swagger UI (AVANT le préfixe v1)
+Route::get('/docs', function () {
+    return view('l5-swagger::index', [
+        'documentation' => 'default',
+        'urlToDocs' => url('/storage/api-docs/api-docs.json'),
+    ]);
+})->name('l5-swagger.docs');
+
 Route::prefix('v1')->group(function () {
 
     // Routes publiques (sans authentification)

@@ -149,7 +149,6 @@ class TransactionService
         }
 
         DB::transaction(function () use ($compteEmetteur, $compteDestinataire, $montant, $frais, $montantTotal, $data) {
-            // Créer et traiter la transaction
             $transaction = Transaction::create([
                 'compte_emetteur_id' => $compteEmetteur->id,
                 'compte_destinataire_id' => $compteDestinataire->id,
@@ -161,7 +160,6 @@ class TransactionService
                 'destinataire_nom' => $compteDestinataire->user->nom . ' ' . $compteDestinataire->user->prenom,
                 'statut' => 'validee',
                 'code_verifie' => true,
-                'description' => $data['description'] ?? 'Transfert',
             ]);
 
             // Mettre à jour les soldes
@@ -193,8 +191,7 @@ class TransactionService
         $frais = $this->calculatePaymentFees($montant);
         $montantTotal = $montant + $frais;
 
-        DB::transaction(function () use ($compteEmetteur, $marchand, $montant, $frais, $montantTotal, $data) {
-            // Créer et traiter la transaction
+        DB::transaction(function () use ($compteEmetteur, $marchand, $montant, $frais, $montantTotal) {
             $transaction = Transaction::create([
                 'compte_emetteur_id' => $compteEmetteur->id,
                 'marchand_id' => $marchand->id,
@@ -204,7 +201,6 @@ class TransactionService
                 'montant_total' => $montantTotal,
                 'statut' => 'validee',
                 'code_verifie' => true,
-                'description' => $data['description'] ?? 'Paiement marchand',
             ]);
 
             // Mettre à jour le solde
@@ -227,8 +223,7 @@ class TransactionService
 
         $montant = $data['montant'];
 
-        DB::transaction(function () use ($compte, $montant, $data) {
-            // Créer et traiter la transaction
+        DB::transaction(function () use ($compte, $montant) {
             $transaction = Transaction::create([
                 'compte_emetteur_id' => $compte->id,
                 'type' => 'depot',
@@ -237,7 +232,6 @@ class TransactionService
                 'montant_total' => $montant,
                 'statut' => 'validee',
                 'code_verifie' => true,
-                'description' => $data['description'] ?? 'Dépôt',
             ]);
 
             // Mettre à jour le solde du compte
@@ -270,8 +264,7 @@ class TransactionService
             throw new \Exception('Limite journalière dépassée');
         }
 
-        DB::transaction(function () use ($compte, $montant, $data) {
-            // Créer et traiter la transaction
+        DB::transaction(function () use ($compte, $montant) {
             $transaction = Transaction::create([
                 'compte_emetteur_id' => $compte->id,
                 'type' => 'retrait',
@@ -280,7 +273,6 @@ class TransactionService
                 'montant_total' => $montant,
                 'statut' => 'validee',
                 'code_verifie' => true,
-                'description' => $data['description'] ?? 'Retrait',
             ]);
 
             // Mettre à jour le solde du compte

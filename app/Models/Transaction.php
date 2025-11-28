@@ -23,7 +23,6 @@ class Transaction extends Model
         'code_verification',
         'code_verifie',
         'reference',
-        'description',
         'date_transaction',
     ];
 
@@ -35,7 +34,6 @@ class Transaction extends Model
         'date_transaction' => 'datetime',
     ];
 
-    // Générer automatiquement la référence et description
     protected static function booted()
     {
         static::creating(function ($transaction) {
@@ -43,33 +41,7 @@ class Transaction extends Model
                 $transaction->reference = 'TXN' . date('YmdHis') . rand(100, 999);
             }
             $transaction->montant_total = $transaction->montant + $transaction->frais;
-            $transaction->description = $transaction->generateDescription();
         });
-    }
-
-    private function generateDescription()
-    {
-        switch ($this->type) {
-            case 'transfert':
-                return "Transfert de {$this->montant}FCFA vers {$this->destinataire_nom}";
-
-            case 'paiement':
-                $marchand = $this->marchand;
-                $nomMarchand = $marchand ? $marchand->nom_commercial : 'Marchand inconnu';
-                return "Paiement de {$this->montant}FCFA chez {$nomMarchand}";
-
-            case 'depot':
-                return "Dépôt de {$this->montant}FCFA sur votre compte";
-
-            case 'retrait':
-                return "Retrait de {$this->montant}FCFA";
-
-            case 'achat_credit':
-                return "Achat de crédit de {$this->montant}FCFA";
-
-            default:
-                return "Transaction de {$this->montant}FCFA";
-        }
     }
 
     public function emetteur()
@@ -92,19 +64,16 @@ class Transaction extends Model
         return $this->hasOne(VerificationCode::class);
     }
 
-    // Scope pour transactions validées (pour l'historique)
     public function scopeValidee($query)
     {
         return $query->where('statut', 'validee');
     }
 
-    // Scope pour transactions récentes
     public function scopeRecent($query, $days = 30)
     {
         return $query->where('created_at', '>=', now()->subDays($days));
     }
 
-    // Scope pour filtrer par utilisateur (émissions et réceptions)
     public function scopePourUtilisateur($query, $userId)
     {
         return $query->where(function ($q) use ($userId) {
@@ -116,13 +85,11 @@ class Transaction extends Model
         });
     }
 
-    // Scope pour filtrer par montant
     public function scopeMontantEntre($query, $min, $max)
     {
         return $query->whereBetween('montant', [$min, $max]);
     }
 
-    // Scope pour filtrer par période
     public function scopePeriode($query, $periode)
     {
         switch ($periode) {
@@ -140,18 +107,15 @@ class Transaction extends Model
         }
     }
 
-    // Scope pour rechercher par référence ou destinataire
     public function scopeRechercher($query, $terme)
     {
         return $query->where(function ($q) use ($terme) {
             $q->where('reference', 'like', "%{$terme}%")
               ->orWhere('destinataire_nom', 'like', "%{$terme}%")
-              ->orWhere('destinataire_numero', 'like', "%{$terme}%")
-              ->orWhere('description', 'like', "%{$terme}%");
+              ->orWhere('destinataire_numero', 'like', "%{$terme}%");
         });
     }
 
-    // Scope pour trier par différents critères
     public function scopeTrierPar($query, $colonne, $direction = 'desc')
     {
         $colonnesAutorisees = ['created_at', 'montant', 'montant_total', 'date_transaction'];

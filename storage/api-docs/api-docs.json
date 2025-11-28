@@ -15,7 +15,7 @@
             "description": "Local API V1 server"
         },
         {
-            "url": "/api"
+            "url": "https://om-paye.onrender.com"
         }
     ],
     "paths": {
@@ -683,10 +683,6 @@
                                         "type": "number",
                                         "format": "float",
                                         "example": 5000
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Transfert pour achat"
                                     }
                                 },
                                 "type": "object"
@@ -760,10 +756,6 @@
                                         "type": "number",
                                         "format": "float",
                                         "example": 2500
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Paiement pour services"
                                     }
                                 },
                                 "type": "object"
@@ -832,10 +824,6 @@
                                         "type": "number",
                                         "format": "float",
                                         "example": 50000
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Dépôt initial"
                                     }
                                 },
                                 "type": "object"
@@ -904,10 +892,6 @@
                                         "type": "number",
                                         "format": "float",
                                         "example": 20000
-                                    },
-                                    "description": {
-                                        "type": "string",
-                                        "example": "Retrait pour achat"
                                     }
                                 },
                                 "type": "object"
@@ -1587,10 +1571,6 @@
                             "annulee"
                         ],
                         "example": "validee"
-                    },
-                    "description": {
-                        "type": "string",
-                        "example": "Transfert vers John Doe"
                     },
                     "date_execution": {
                         "type": "string",

@@ -29,7 +29,6 @@ use Illuminate\Support\Facades\Gate;
  *     @OA\Property(property="montant", type="number", format="float", example=5000.00),
  *     @OA\Property(property="frais", type="number", format="float", example=50.00),
  *     @OA\Property(property="statut", type="string", enum={"en_attente", "validee", "echouee", "annulee"}, example="validee"),
- *     @OA\Property(property="description", type="string", example="Transfert vers John Doe"),
  *     @OA\Property(property="date_execution", type="string", format="date-time"),
  *     @OA\Property(property="emetteur", ref="#/components/schemas/Compte"),
  *     @OA\Property(property="destinataire", ref="#/components/schemas/Compte"),
@@ -63,8 +62,7 @@ class TransactionController extends Controller
      *         @OA\JsonContent(
      *             required={"destinataire_numero","montant"},
      *             @OA\Property(property="destinataire_numero", type="string", example="771234567"),
-     *             @OA\Property(property="montant", type="number", format="float", example=5000.00),
-     *             @OA\Property(property="description", type="string", example="Transfert pour achat")
+     *             @OA\Property(property="montant", type="number", format="float", example=5000.00)
      *         )
      *     ),
      *     @OA\Response(
@@ -83,14 +81,9 @@ class TransactionController extends Controller
      */
     public function transfer(TransferRequest $request): JsonResponse
     {
-        // Vérification des autorisations avec Gate
-        // if (!Gate::allows('transfer-money')) {
-        //     return $this->errorResponse('Vous n\'avez pas l\'autorisation d\'effectuer des transferts.', 403);
-        // }
-
         try {
             $transaction = $this->transactionService->processTransfer(
-                $request->validated(),
+                $request->validated(),  // ← Contient 'description' du client
                 auth()->id()
             );
 
@@ -114,8 +107,7 @@ class TransactionController extends Controller
      *         @OA\JsonContent(
      *             required={"code_marchand","montant"},
      *             @OA\Property(property="code_marchand", type="string", example="MARCHAND001"),
-     *             @OA\Property(property="montant", type="number", format="float", example=2500.00),
-     *             @OA\Property(property="description", type="string", example="Paiement pour services")
+     *             @OA\Property(property="montant", type="number", format="float", example=2500.00)
      *         )
      *     ),
      *     @OA\Response(
@@ -164,8 +156,7 @@ class TransactionController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"montant"},
-     *             @OA\Property(property="montant", type="number", format="float", example=50000.00),
-     *             @OA\Property(property="description", type="string", example="Dépôt initial")
+     *             @OA\Property(property="montant", type="number", format="float", example=50000.00)
      *         )
      *     ),
      *     @OA\Response(
@@ -186,7 +177,6 @@ class TransactionController extends Controller
     {
         $request->validate([
             'montant' => 'required|numeric|min:100|max:1000000',
-            'description' => 'nullable|string|max:255',
         ]);
 
         // Vérification des autorisations
@@ -219,8 +209,7 @@ class TransactionController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"montant"},
-     *             @OA\Property(property="montant", type="number", format="float", example=20000.00),
-     *             @OA\Property(property="description", type="string", example="Retrait pour achat")
+     *             @OA\Property(property="montant", type="number", format="float", example=20000.00)
      *         )
      *     ),
      *     @OA\Response(
@@ -241,7 +230,6 @@ class TransactionController extends Controller
     {
         $request->validate([
             'montant' => 'required|numeric|min:100|max:1000000',
-            'description' => 'nullable|string|max:255',
         ]);
 
         try {
@@ -525,7 +513,6 @@ class TransactionController extends Controller
             'expediteur' => $this->formatExpediteur($transaction),
             'montant' => $this->formatMontant($transaction),
             'date' => $this->formatDate($transaction),
-            'message_recu' => $transaction->description ?? 'Transaction effectuée',
             'actions' => [
                 'partager' => true,
                 'appeler' => true,
@@ -584,7 +571,6 @@ class TransactionController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('reference', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
                   ->orWhereHas('emetteur.user', function ($userQuery) use ($search) {
                       $userQuery->where('nom', 'like', "%{$search}%")
                                 ->orWhere('prenom', 'like', "%{$search}%");
