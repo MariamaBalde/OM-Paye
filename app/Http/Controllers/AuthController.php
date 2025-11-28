@@ -26,14 +26,6 @@ use Illuminate\Support\Str;
  *     version="1.0.0",
  *     description="API for Orange Money payment system - Version 1"
  * )
- * @OA\Server(
- *     url="https://om-paye.onrender.com/api/v1",
- *     description="Production API V1 server"
- * )
- * @OA\Server(
- *     url="/api/v1",
- *     description="Local API V1 server"
- * )
  * @OA\SecurityScheme(
  *     securityScheme="passport",
  *     type="apiKey",
@@ -108,7 +100,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/register",
+     *     path="/api/v1/auth/register",
      *     summary="Inscription utilisateur Orange Money",
      *     description="Créer un nouveau compte utilisateur avec numéro de téléphone et code secret. Un SMS de confirmation est envoyé.",
      *     tags={"Authentication"},
@@ -116,8 +108,8 @@ class AuthController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"nom","prenom","telephone","code_secret"},
-     *             @OA\Property(property="nom", type="string", example="Diallo"),
-     *             @OA\Property(property="prenom", type="string", example="Abdoulaye"),
+     *             @OA\Property(property="nom", type="string", example="Balde"),
+     *             @OA\Property(property="prenom", type="string", example="Mariama"),
      *             @OA\Property(property="telephone", type="string", example="774047668", description="Numéro de téléphone 9 chiffres"),
      *             @OA\Property(property="code_secret", type="string", example="1234", description="Code secret 4 chiffres")
      *         )
@@ -193,7 +185,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/login",
+     *     path="/api/v1/auth/login",
      *     summary="Initiation de connexion OM Pay",
      *     description="Saisir numéro de téléphone → Vérifie que l'utilisateur existe → Prêt pour vérification du code secret",
      *     tags={"Authentication"},
@@ -201,7 +193,7 @@ class AuthController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"telephone"},
-     *             @OA\Property(property="telephone", type="string", example="782917770", description="Numéro de téléphone sans indicatif (+221)")
+     *             @OA\Property(property="telephone", type="string", example="774047668", description="Numéro de téléphone sans indicatif (+221)")
      *         )
      *     ),
      *     @OA\Response(
@@ -246,7 +238,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/verify-code-secret",
+     *     path="/api/v1/auth/verify-code-secret",
      *     summary="Vérification du code secret - Connexion finale",
      *     description="Saisir numéro de téléphone et code secret (4 chiffres) → Connexion complète",
      *     tags={"Authentication"},
@@ -254,7 +246,7 @@ class AuthController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             required={"telephone","code_secret"},
-     *             @OA\Property(property="telephone", type="string", example="782917770", description="Numéro de téléphone"),
+     *             @OA\Property(property="telephone", type="string", example="774047668", description="Numéro de téléphone"),
      *             @OA\Property(property="code_secret", type="string", example="1234", description="Code secret Orange Money (4 chiffres)")
      *         )
      *     ),
@@ -334,7 +326,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/logout",
+     *     path="/api/v1/auth/logout",
      *     summary="User logout",
      *     description="Logout the authenticated user",
      *     tags={"Authentication"},
@@ -367,7 +359,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/auth/refresh",
+     *     path="/api/v1/auth/refresh",
      *     summary="Refresh access token",
      *     description="Use refresh token to get a new access token",
      *     tags={"Authentication"},
@@ -452,7 +444,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/auth/profile",
+     *     path="/api/v1/auth/profile",
      *     summary="Get user profile",
      *     description="Get the authenticated user's profile information",
      *     tags={"Authentication"},
@@ -485,7 +477,7 @@ class AuthController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/client/dashboard",
+     *     path="/api/v1/client/dashboard",
      *     summary="Get client dashboard data",
      *     description="Get dashboard data including user info, account details, and recent transactions",
      *     tags={"Dashboard"},

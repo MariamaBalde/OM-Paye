@@ -53,7 +53,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/transfert",
+     *     path="/api/v1/transactions/transfert",
      *     description="Processus transfert d'argent a un autre compte",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
@@ -98,7 +98,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/paiement",
+     *     path="/api/v1/transactions/paiement",
      *     description="Processus paiement pour un marchand",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
@@ -148,7 +148,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/depot",
+     *     path="/api/v1/transactions/depot",
      *     description="Processus de dépôt à l'account",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
@@ -201,7 +201,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/transactions/retrait",
+     *     path="/api/v1/transactions/retrait",
      *     description="Processus de retrait du compte",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
@@ -254,7 +254,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/transactions/{numero_compte}/history",
+     *     path="/api/v1/transactions/{numero_compte}/history",
      *     description="Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
      *     tags={"Transactions"},
      *     security={{"passport":{}}},
@@ -441,7 +441,7 @@ class TransactionController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/transactions/{id}",
+     *     path="/api/v1/transactions/{id}",
      *     summary="Afficher les détails d'une transaction",
      *     description="Récupérer les détails complets d'une transaction spécifique au format prototype",
      *     tags={"Transactions"},

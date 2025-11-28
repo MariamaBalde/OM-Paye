@@ -7,6 +7,7 @@
     },
     "servers": [
         {
+<<<<<<< HEAD
             "url": "https://om-paye.onrender.com/api/v1",
             "description": "Production API V1 server"
         },
@@ -16,17 +17,20 @@
         },
         {
             "url": "https://om-paye.onrender.com"
+=======
+            "url": ""
+>>>>>>> a056b246b0df2fa9daac5cb45eaab128ad53c807
         }
     ],
     "paths": {
-        "/auth/register": {
+        "/api/v1/auth/register": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Inscription utilisateur Orange Money",
                 "description": "Créer un nouveau compte utilisateur avec numéro de téléphone et code secret. Un SMS de confirmation est envoyé.",
-                "operationId": "ed42f392010c301892e640067141676e",
+                "operationId": "48e49e48019e8b141753cb515a26100b",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -41,11 +45,11 @@
                                 "properties": {
                                     "nom": {
                                         "type": "string",
-                                        "example": "Diallo"
+                                        "example": "Balde"
                                     },
                                     "prenom": {
                                         "type": "string",
-                                        "example": "Abdoulaye"
+                                        "example": "Mariama"
                                     },
                                     "telephone": {
                                         "description": "Numéro de téléphone 9 chiffres",
@@ -109,14 +113,14 @@
                 }
             }
         },
-        "/auth/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Initiation de connexion OM Pay",
                 "description": "Saisir numéro de téléphone → Vérifie que l'utilisateur existe → Prêt pour vérification du code secret",
-                "operationId": "8cb7742ae98d0990acb2907c4e00bf24",
+                "operationId": "5db09a35f965c6ca7529ed3c3cae8e21",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -129,7 +133,7 @@
                                     "telephone": {
                                         "description": "Numéro de téléphone sans indicatif (+221)",
                                         "type": "string",
-                                        "example": "782917770"
+                                        "example": "774047668"
                                     }
                                 },
                                 "type": "object"
@@ -201,14 +205,14 @@
                 }
             }
         },
-        "/auth/verify-code-secret": {
+        "/api/v1/auth/verify-code-secret": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Vérification du code secret - Connexion finale",
                 "description": "Saisir numéro de téléphone et code secret (4 chiffres) → Connexion complète",
-                "operationId": "6482b1c0c2fb9a2faadd967165e8692c",
+                "operationId": "23305b91f25d97af81b19eeb59aefcf6",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -222,7 +226,7 @@
                                     "telephone": {
                                         "description": "Numéro de téléphone",
                                         "type": "string",
-                                        "example": "782917770"
+                                        "example": "774047668"
                                     },
                                     "code_secret": {
                                         "description": "Code secret Orange Money (4 chiffres)",
@@ -322,14 +326,14 @@
                 }
             }
         },
-        "/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "User logout",
                 "description": "Logout the authenticated user",
-                "operationId": "0d29c740dc06d77602af8095bf4654cc",
+                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
                 "responses": {
                     "200": {
                         "description": "Logout successful",
@@ -362,14 +366,14 @@
                 ]
             }
         },
-        "/auth/refresh": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Refresh access token",
                 "description": "Use refresh token to get a new access token",
-                "operationId": "f6c9683ed975ace7d035a09e6e2a9332",
+                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -442,14 +446,14 @@
                 }
             }
         },
-        "/auth/profile": {
+        "/api/v1/auth/profile": {
             "get": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Get user profile",
                 "description": "Get the authenticated user's profile information",
-                "operationId": "19ebac4c2899c32cfe90402c3781e2e6",
+                "operationId": "6e8022d3be31efd2e834e9b373d83eb0",
                 "responses": {
                     "200": {
                         "description": "Profile retrieved successfully",
@@ -485,14 +489,14 @@
                 ]
             }
         },
-        "/client/dashboard": {
+        "/api/v1/client/dashboard": {
             "get": {
                 "tags": [
                     "Dashboard"
                 ],
                 "summary": "Get client dashboard data",
                 "description": "Get dashboard data including user info, account details, and recent transactions",
-                "operationId": "3235f355f3cbce0f76e8a8f24c834379",
+                "operationId": "024413899d13ad7997b55c57b9df3b92",
                 "responses": {
                     "200": {
                         "description": "Dashboard data retrieved successfully",
@@ -574,14 +578,14 @@
                 ]
             }
         },
-        "/comptes/{numcompte}/balance": {
+        "/api/v1/comptes/{numcompte}/balance": {
             "get": {
                 "tags": [
                     "Comptes"
                 ],
                 "summary": "Get account balance by account number",
                 "description": "Get the balance of a specific account by its account number",
-                "operationId": "22a5e797e7c2865bb9203c6582a036f2",
+                "operationId": "bf783f92c6fe9d64124de73b9f6c58bc",
                 "parameters": [
                     {
                         "name": "numcompte",
@@ -611,26 +615,12 @@
                                         "data": {
                                             "properties": {
                                                 "solde": {
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "example": 1500.5
+                                                    "type": "string",
+                                                    "example": "44200 FCFA"
                                                 },
                                                 "numero_compte": {
                                                     "type": "string",
                                                     "example": "OM123456789"
-                                                },
-                                                "plafond_journalier": {
-                                                    "type": "number",
-                                                    "format": "float",
-                                                    "example": 50000
-                                                },
-                                                "statut": {
-                                                    "type": "string",
-                                                    "example": "actif"
-                                                },
-                                                "devise": {
-                                                    "type": "string",
-                                                    "example": "FCFA"
                                                 }
                                             },
                                             "type": "object"
@@ -658,13 +648,13 @@
                 ]
             }
         },
-        "/transactions/transfert": {
+        "/api/v1/transactions/transfert": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
                 "description": "Processus transfert d'argent a un autre compte",
-                "operationId": "d43c7f1335e9d9c21a6da647a0c51905",
+                "operationId": "ce3f183a8b5f29485e4b3a52be8d3eed",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -731,13 +721,13 @@
                 ]
             }
         },
-        "/transactions/paiement": {
+        "/api/v1/transactions/paiement": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
                 "description": "Processus paiement pour un marchand",
-                "operationId": "c8a5700cdbad860316e7147837e15f0e",
+                "operationId": "4ea87789f2abb8bb5018bde382705124",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -804,13 +794,13 @@
                 ]
             }
         },
-        "/transactions/depot": {
+        "/api/v1/transactions/depot": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
                 "description": "Processus de dépôt à l'account",
-                "operationId": "c5c6fcd2b5e5d5bd4f38e9e94c33b9e7",
+                "operationId": "d61f4e4be086818bf112d5a27672dae5",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -872,13 +862,13 @@
                 ]
             }
         },
-        "/transactions/retrait": {
+        "/api/v1/transactions/retrait": {
             "post": {
                 "tags": [
                     "Transactions"
                 ],
                 "description": "Processus de retrait du compte",
-                "operationId": "77ca9b114883a78882f83147157059d4",
+                "operationId": "49040c0d419981ce127d1b5c1f7efd8c",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -940,13 +930,13 @@
                 ]
             }
         },
-        "/transactions/{numero_compte}/history": {
+        "/api/v1/transactions/{numero_compte}/history": {
             "get": {
                 "tags": [
                     "Transactions"
                 ],
                 "description": "Obtenir l'historique des transactions d'un compte spécifique à l'aide de filtres",
-                "operationId": "1fa37da79a38e94c13d41d2909a36438",
+                "operationId": "e85800cff5eccc6795093514224b1ac4",
                 "parameters": [
                     {
                         "name": "numero_compte",
@@ -1214,14 +1204,14 @@
                 ]
             }
         },
-        "/transactions/{id}": {
+        "/api/v1/transactions/{id}": {
             "get": {
                 "tags": [
                     "Transactions"
                 ],
                 "summary": "Afficher les détails d'une transaction",
                 "description": "Récupérer les détails complets d'une transaction spécifique au format prototype",
-                "operationId": "2a6d0d9d6950359d14a92f71c3a55b6d",
+                "operationId": "688bc3b066f6fe867ee32162fa08e71b",
                 "parameters": [
                     {
                         "name": "id",
@@ -1592,7 +1582,7 @@
         "securitySchemes": {
             "passport": {
                 "type": "apiKey",
-                "description": "Enter token in format (Bearer <token>)",
+                "description": "Enter token in format: Bearer {token}",
                 "name": "Authorization",
                 "in": "header"
             }
