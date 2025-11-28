@@ -48,6 +48,10 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "post-install-cmd": [
+            "@php artisan vendor:publish --provider=\"L5Swagger\\L5SwaggerServiceProvider\" --tag=l5-swagger-ui-assets --force",
+            "@php artisan l5-swagger:generate"
         ]
     },
     "extra": {

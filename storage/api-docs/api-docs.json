@@ -7,7 +7,12 @@
     },
     "servers": [
         {
-            "url": "https://om-paye.onrender.com"
+            "url": "http://127.0.0.1:8001",
+            "description": "Local Development Server"
+        },
+        {
+            "url": "https://om-paye.onrender.com",
+            "description": "Production API Server"
         }
     ],
     "paths": {

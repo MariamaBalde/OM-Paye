@@ -7,6 +7,9 @@ use App\Models\Transaction;
 use App\Observers\UserObserver;
 use App\Observers\TransactionObserver;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL; // Import the URL facade
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override the L5Swagger controller with our custom one
+        $this->app->bind(\L5Swagger\Http\Controllers\SwaggerController::class, \App\Http\Controllers\SwaggerController::class);
     }
 
     /**
@@ -26,5 +30,26 @@ class AppServiceProvider extends ServiceProvider
         // Enregistrer les observers
         User::observe(UserObserver::class);
         Transaction::observe(TransactionObserver::class);
+
+        // Générer la documentation Swagger en production si elle n'existe pas
+        if ($this->app->environment('production')) {
+            $docsDir = storage_path('api-docs');
+            $docsPath = $docsDir . '/api-docs.json';
+
+            // Créer le répertoire s'il n'existe pas
+            if (!is_dir($docsDir)) {
+                mkdir($docsDir, 0755, true);
+            }
+
+            if (!file_exists($docsPath)) {
+                try {
+                    Artisan::call('l5-swagger:generate');
+                } catch (\Exception $e) {
+                    Log::error('Failed to generate Swagger docs: ' . $e->getMessage());
+                }
+            }
+
+            \URL::forceScheme('https'); // Force HTTPS for all URLs
+        }
     }
 }

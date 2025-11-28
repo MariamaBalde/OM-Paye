@@ -81,7 +81,7 @@ return [
             /*
              * Absolute path to location where parsed annotations will be stored
              */
-            'docs' => storage_path('api-docs'),
+            'docs' => storage_path('api-docs'), // Ensure this matches the location of the generated file
 
             /*
              * Absolute path to directory where to export views
@@ -99,6 +99,11 @@ return [
              * `scanOptions.exclude` overwrites this
              */
             'excludes' => [],
+
+            /*
+             * Ensure absolute paths are used
+             */
+            'use_absolute_path' => true,
         ],
 
         'scanOptions' => [
