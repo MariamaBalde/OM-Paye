@@ -91,7 +91,7 @@ return [
             /*
              * Edit to set the api's base path
              */
-            'base' => 'http://127.0.0.1:8000',
+            'base' => null,
 
             /*
              * Absolute path to directories that should be excluded from scanning
