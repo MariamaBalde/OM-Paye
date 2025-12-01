@@ -70,11 +70,6 @@ return [
                 'docs' => [],
                 'oauth2_callback' => [],
             ],
-
-            /*
-             * Route Group options
-             */
-            'group_options' => [],
         ],
 
         'paths' => [

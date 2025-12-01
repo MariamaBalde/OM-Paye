@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// ✅ Route principale pour la documentation
-Route::get('/docs', function () {
-    return view('l5-swagger::index', [
-        'documentation' => 'default',
-        'urlToDocs' => url('/api/api-docs-json'),
-    ]);
-});
+// // ✅ Route principale pour la documentation
+// Route::get('/docs', function () {
+//     return view('l5-swagger::index', [
+//         'documentation' => 'default',
+//         'urlToDocs' => url('/api/api-docs-json'),
+//     ]);
+// });
 
 // ✅ Route pour servir le JSON (depuis api.php aussi)
 Route::get('/api/api-docs-json', function () {
