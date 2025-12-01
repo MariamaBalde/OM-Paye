@@ -52,9 +52,9 @@ return [
     'defaults' => [
         'routes' => [
             /*
-             * Route for accessing parsed swagger annotations.
+             * Route for accessing api documentation interface
              */
-            'docs' => 'docs',
+            'docs' => 'docs',  // ✅ Route : /docs
 
             /*
              * Route for Oauth2 authentication callback.
@@ -73,6 +73,11 @@ return [
         ],
 
         'paths' => [
+            /*
+             * Edit to include full URL in ui for assets
+             */
+            'use_absolute_path' => env('L5_SWAGGER_USE_ABSOLUTE_PATH', false),  // ✅ false pour URLs relatives
+
             /*
              * Absolute path to location where parsed annotations will be stored
              */
