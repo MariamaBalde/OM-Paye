@@ -29,7 +29,7 @@
     <script>
         window.onload = function() {
             const ui = SwaggerUIBundle({
-                url: "/api/api-docs-json?t=" + Date.now(),  // URL relative du JSON avec timestamp
+                url: "{{ url('/api/api-docs-json') }}?t=" + Date.now(),  // ✅ URL absolue générée par Laravel
                 dom_id: '#swagger-ui',
                 presets: [
                     SwaggerUIBundle.presets.apis,
