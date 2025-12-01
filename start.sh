@@ -77,6 +77,10 @@ php artisan view:cache
 echo "Starting Laravel scheduler..."
 php artisan schedule:work &
 
+php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider" --tag=views --force
+php artisan l5-swagger:generate
+
+
 # --- Démarrer le serveur principal ---
 echo "🌐 Starting main process..."
 exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}  # ✅ PORT 8000 par défaut
