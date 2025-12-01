@@ -21,17 +21,9 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * @OA\Info(
- *     title="Orange Money API",
- *     version="1.0.0",
- *     description="API for Orange Money payment system - Version 1"
- * )
- * @OA\SecurityScheme(
- *     securityScheme="passport",
- *     type="apiKey",
- *     name="Authorization",
- *     in="header",
- *     description="Enter token in format: Bearer {token}"
+ * @OA\Tag(
+ *     name="Authentication",
+ *     description="User authentication endpoints"
  * )
  * @OA\Schema(
  *     schema="User",
