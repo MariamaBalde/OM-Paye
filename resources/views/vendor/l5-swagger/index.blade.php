@@ -29,7 +29,7 @@
     <script>
         window.onload = function() {
             const ui = SwaggerUIBundle({
-                url: "http://127.0.0.1:8000/api/api-docs-json?t=" + Date.now(),  // URL complète du JSON avec timestamp
+                url: "/api/api-docs-json?t=" + Date.now(),  // URL relative du JSON avec timestamp
                 dom_id: '#swagger-ui',
                 presets: [
                     SwaggerUIBundle.presets.apis,
