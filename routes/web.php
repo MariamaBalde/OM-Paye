@@ -15,9 +15,16 @@ use Illuminate\Support\Facades\Route;
 
 // ✅ Route principale pour la documentation
 Route::get('/docs', function () {
+    $documentation = 'default';
+    $config = config('l5-swagger.documentations.' . $documentation);
+
     return view('l5-swagger::index', [
-        'documentation' => 'default',
+        'documentation' => $documentation,
         'urlToDocs' => url('/api/api-docs-json'),
+        'operationsSorter' => $config['operations_sort'] ?? null,
+        'configUrl' => $config['additional_config_url'] ?? null,
+        'validatorUrl' => $config['validator_url'] ?? null,
+        'useAbsolutePath' => $config['paths']['use_absolute_path'] ?? true,
     ]);
 });
 
