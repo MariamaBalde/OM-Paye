@@ -16,7 +16,17 @@ class CheckTokenExpiration
     public function handle(Request $request, Closure $next): Response
     {
         // Get the current access token from the request
+        // Support both "Bearer token" and just "token" formats
         $accessToken = $request->bearerToken();
+        
+        // If no bearer token found, try to get Authorization header directly
+        if (!$accessToken) {
+            $authHeader = $request->header('Authorization');
+            if ($authHeader) {
+                // Remove "Bearer " prefix if present
+                $accessToken = str_ireplace('Bearer ', '', $authHeader);
+            }
+        }
 
         if ($accessToken) {
             $token = \Laravel\Passport\Token::where('id', $accessToken)->first();

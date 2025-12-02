@@ -32,7 +32,7 @@ Route::get('/docs', function () {
     return view('l5-swagger::index', [
         'documentation' => 'default',
         'urlToDocs' => '/api-docs-json',  // ✅ URL RELATIVE
-    ]);
+     ]);
 })->name('l5-swagger.docs');
 
 Route::prefix('v1')->group(function () {
@@ -56,7 +56,7 @@ Route::prefix('v1')->group(function () {
     });
 
     // Authenticated routes - MVP Orange Money
-    Route::middleware(['auth:api', 'check.token.expiration'])->group(function () {
+    Route::middleware(['flexible.bearer', 'auth:api', 'check.token.expiration'])->group(function () {
 
         // Authentification (2 endpoints supplémentaires)
         Route::prefix('auth')->group(function () {
